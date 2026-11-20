@@ -105,6 +105,7 @@ def _run_tool(name: str, args: dict, request_id: str, scans: dict, ui: dict | No
             "listing_id": listing["id"], "store_id": listing["store_id"], "score": result["score"],
             "tier": result["tier"], "reasons": [r["code"] for r in result["reasons"]],
             "linked_stores": result["linked_stores"],
+            "sources": result["sources"], "extras_audit": result["extras_audit"],
         })
         return result
     return {"error": f"unknown tool {name}"}
@@ -236,7 +237,8 @@ def run_turn(text: str, request_id: str | None = None) -> dict:
         s = v["scan"]
         results.append({"listing_id": lid, "store": s["store"], "price": float(v["listing"]["price"]),
                         "title": v["listing"]["title"], "score": s["score"], "tier": s["tier"],
-                        "reasons": s["reasons"], "linked_stores": s["linked_stores"]})
+                        "reasons": s["reasons"], "linked_stores": s["linked_stores"],
+                        "sources": s["sources"]})
     results.sort(key=lambda r: (TIER_ORDER[r["tier"]], -r["score"], r["price"]))
     top_tier = results[0]["tier"] if results else None
     say = build_say(results)

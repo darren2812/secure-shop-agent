@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from . import attacks, audit, db, persona, voice  # noqa: E402
+from . import attacks, audit, db, extras, persona, voice  # noqa: E402
 from .agent import run_turn  # noqa: E402
 from .chat import chat_reply, chat_status  # noqa: E402
 from .policy import PolicyError, check_policy, get_profile, place_order, verify_identity  # noqa: E402
@@ -27,6 +27,7 @@ async def lifespan(_app):
     with db.connect() as conn:
         if not conn.execute("SELECT 1 FROM users LIMIT 1").fetchone():
             reset_and_seed()
+    await extras.startup()
     yield
 
 
@@ -97,7 +98,7 @@ class SdpIn(BaseModel):
 @app.get("/api/health")
 def health():
     return {"ok": True, "voice": bool(os.environ.get("OPENAI_API_KEY")), "llm": bool(os.environ.get("ANTHROPIC_API_KEY")),
-            "persona": persona.enabled()}
+            "persona": persona.enabled(), "extras": extras.statuses()}
 
 
 @app.get("/health")
@@ -259,6 +260,7 @@ def report(body: ReportIn):
 @app.post("/api/reset_demo", dependencies=[Depends(demo_only)])
 def reset_demo():
     reset_and_seed()
+    extras.reset()
     return {"reset": True}
 
 

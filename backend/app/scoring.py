@@ -26,6 +26,8 @@ PENALTIES = {
     "price_too_low": (-20, "Price is {pct}% below typical"),
     "no_returns_or_contact": (-15, "No return policy or contact address"),
     "fake_discount": (-10, "Advertised discount not supported by price history"),
+    "policy_red_flag": (-10, 'Return policy says "{phrase}"'),
+    "linked_two_hops": (-30, "Linked to reported store {other} through {via}"),
 }
 
 

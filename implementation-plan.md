@@ -140,6 +140,14 @@ temporary SQLite database with external providers disabled.
 
 **Goal:** one place where optional sources plug into `scan_store`, so S3 and S4 only add a module and one registration line, and can run in parallel.
 **Plan:** §2 rule 5, §3.1, §5 and §6 ("At scan time" parts).
+**Status:** implemented and verified locally on 2026-11-20, on `step/s2-extras`.
+
+**Validation:** 110 tests pass on SQLite, including 19 fake-provider tests for
+penalty-only scoring across every seed listing, ignored gate/unknown codes,
+failure isolation, source/audit metadata, spotlighted passages, lifecycle health,
+and cache-only checkout (including a newly blocked cached result). Five real
+`/api/turn` responses match the starting S1 code exactly after removing the new
+`sources` field. No Senso or Cognee implementation is included.
 
 **Tasks**
 1. `scoring.py`: add penalties `policy_red_flag: (-10, 'Return policy says "{phrase}"')` and `linked_two_hops: (-30, "Linked to reported store {other} through {via}")`.
