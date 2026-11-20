@@ -194,7 +194,7 @@ def test_lifecycle_health_and_failure_isolation(fail):
 
 def test_no_providers_adds_only_source_metadata_to_turn_results():
     result = run_turn("AirPods Pro", "no_extras")
-    assert len(result["results"]) == 6
+    assert len(result["results"]) == 7
     assert all(r["sources"] == {"sql": "live"} for r in result["results"])
     assert all(e["payload"]["extras_audit"] == {} for e in get_trail("no_extras") if e["step"] == "scan_store")
     assert verify_trail("no_extras")["intact"] is True

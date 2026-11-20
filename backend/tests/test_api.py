@@ -30,7 +30,7 @@ def purchases():
 def test_turn_returns_code_built_verdict():
     r = client.post("/api/turn", json={"text": "AirPods Pro"}).json()
     tiers = [x["tier"] for x in r["results"]]
-    assert tiers.count("trusted") == 2 and tiers.count("caution") == 1 and tiers.count("blocked") == 3
+    assert tiers.count("trusted") == 3 and tiers.count("caution") == 1 and tiers.count("blocked") == 3
     assert r["tier"] == "trusted" and r["say"].endswith("Your call.")
     assert client.post(f"/api/audit/{r['request_id']}/verify").json()["intact"] is True
 
@@ -109,7 +109,7 @@ def test_buy_intent_opens_sheet_and_focus_never_buys():
     first = client.post("/api/turn", json={"text": "AirPods Pro"}).json()
     rid = first["request_id"]
     r = client.post("/api/turn", json={"text": "I want to buy them", "request_id": rid}).json()
-    assert r["ui_action"] == {"type": "show_options"} and len(r["results"]) == 6
+    assert r["ui_action"] == {"type": "show_options"} and len(r["results"]) == 7
     r = client.post("/api/turn", json={"text": "the TechDeals one please, buy it now", "request_id": rid}).json()
     assert r["ui_action"] == {"type": "focus_listing", "listing_id": "l_amz"} and "Confirm" in r["say"]
     r = client.post("/api/turn", json={"text": "get it from Apple Store Outlet", "request_id": rid}).json()

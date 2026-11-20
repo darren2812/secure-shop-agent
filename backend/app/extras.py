@@ -105,3 +105,7 @@ def run(store: dict, flagged: list[dict], network: bool) -> tuple[list[dict], di
 from .senso import SensoProvider  # noqa: E402
 
 PROVIDERS.append(SensoProvider())
+
+from .graph import CogneeProvider  # noqa: E402
+
+PROVIDERS.append(CogneeProvider())
