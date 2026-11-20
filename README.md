@@ -32,6 +32,24 @@ cp ../.env.example .env   # fill in your own keys; .env is gitignored
 
 Without API keys the backend still works: search and scoring run in code and Persona uses a local stub.
 
+For SingleStore, put `SINGLESTORE_HOST`, `SINGLESTORE_PORT`, `SINGLESTORE_USER`,
+`SINGLESTORE_PASSWORD`, and optionally `SINGLESTORE_DATABASE` in the gitignored
+root `.env.singlestore`. Use the **master (DDL) endpoint**: purchases use a rowstore
+reference table, whose transactional writes require the master aggregator.
+
+```bash
+cd backend
+.venv/bin/python scripts/setup_singlestore.py --configure
+.venv/bin/python scripts/setup_singlestore.py --test
+```
+
+Setup creates and seeds `shop_demo` and `shop_drill`, preserves existing seeded
+data, and `--configure` writes `DATABASE_URL` for `shop_demo` into `backend/.env`.
+The test command resets only `shop_drill`. You can also pass a percent-encoded
+`mysql://user:password@host:3306/shop_drill` URL as `TEST_DATABASE_URL` to pytest.
+Ordinary pytest runs use SQLite even when `backend/.env` points at `shop_demo`.
+To run the app on SQLite, set `DATABASE_URL` to an empty value.
+
 ## API
 
 See `contracts/` for example requests and responses.

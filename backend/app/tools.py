@@ -112,9 +112,9 @@ def scan_store(store_id: str, listing: dict | None = None) -> dict:
             raise KeyError(store_id)
         store = stores[0]
         pol = (_rows(conn, "SELECT * FROM store_policies WHERE store_id = ?", (store_id,)) or [{}])[0]
-        facts_rows = _rows(conn, "SELECT params FROM store_signals WHERE store_id = ? AND signal = 'facts'", (store_id,))
+        facts_rows = _rows(conn, "SELECT params FROM store_signals WHERE store_id = ? AND `signal` = 'facts'", (store_id,))
         facts = json.loads(facts_rows[0]["params"]) if facts_rows else {}
-        extra = _rows(conn, "SELECT signal, params, source, evidence_url FROM store_signals WHERE store_id = ? AND signal <> 'facts'", (store_id,))
+        extra = _rows(conn, "SELECT `signal`, params, source, evidence_url FROM store_signals WHERE store_id = ? AND `signal` <> 'facts'", (store_id,))
         linked = [{**l, "name": safe_name(l["name"])} for l in find_linked_flagged(conn, store)]
         ref = None
         if listing:

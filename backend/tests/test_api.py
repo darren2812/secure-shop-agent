@@ -87,6 +87,12 @@ def test_report_flags_store_and_links_others():
     assert bb["tier"] == "blocked"
 
 
+def test_reporting_an_already_flagged_store_succeeds():
+    for _ in range(2):
+        assert client.post("/api/reports", json={"store_id": "gadgetflash"}).status_code == 200
+    assert client.post("/api/reports", json={"store_id": "missing_store"}).status_code == 404
+
+
 def test_attack_scenarios_keep_verdicts():
     inj = client.post("/api/attacks/prompt_injection").json()
     assert inj["before"] == {"tier": inj["after"]["tier"], "score": inj["after"]["score"]} and inj["after"]["tier"] == "blocked"
