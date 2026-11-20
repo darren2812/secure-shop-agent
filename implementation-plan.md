@@ -117,6 +117,12 @@ pytest at `shop_demo` is refused before collection. Local `backend/.env` selects
 
 **Goal:** Firedrill can talk to the agent and read a code-built `reply` with a `Status:` line.
 **Plan:** §4.
+**Status:** implemented and verified locally on 2026-11-20, on `step/s1-chat`.
+
+**Validation:** 91 tests pass on SQLite. `PORT=8123 .venv/bin/python -m app`
+answers `/health` with `{"ok": true}`; `/chat` returns six offers for AirPods Pro
+and its reply ends with `Status: RESULTS_READY`. Process smoke checks used a
+temporary SQLite database with external providers disabled.
 
 **Tasks**
 1. `backend/app/chat.py`: `chat_status(out) -> str` and `chat_reply(out) -> str` exactly as in §4 (statuses `NO_RESULTS`, `BLOCKED_STORE`, `TAP_TO_CONFIRM`, `RESULTS_READY`; reply = explanation, "Results (scored by code):" lines with name, price, tier, score if not Blocked, first reason text; then `say`; then `Status: X`). **No listing titles.**
@@ -261,3 +267,4 @@ pytest at `shop_demo` is refused before collection. Local `backend/.env` selects
 *(Sessions add one line each: step, what the plan got wrong, what you did.)*
 
 - S0: `signal` is reserved on SingleStore, so quote that SQL column in schema/seed/tools/attacks; reference-table transactions require the master/DDL endpoint, so configure that endpoint. Added setup/test commands to README and database notes to `.env.example` for reproducibility.
+- S1: `/chat` and a guarded `/policy-check` command already existed; preserved the command, applied the planned reply/status/session contract, and updated old assertions in `tests/test_api.py` that required the superseded reply format and session rejection.
