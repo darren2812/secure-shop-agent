@@ -103,3 +103,41 @@ a { color: var(--neutral); }
 @media (prefers-reduced-motion: reduce) {
   .orb-fallback--breathe { animation: none; }
 }
+
+/* Shop */
+.link { background: none; border: 0; color: var(--neutral); font: inherit; cursor: pointer; padding: 0 4px; min-height: 32px; }
+.home__err { color: var(--blocked); }
+.home__receipt { display: block; margin: 8px auto; }
+.results { display: grid; gap: 16px; margin-top: 20px; }
+.results__group h2 { font-size: 15px; color: var(--muted); margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
+.results__avoided { text-align: center; color: var(--muted); font-size: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+.card--trusted { border-left: 4px solid var(--trusted); }
+.card--caution { border-left: 4px solid var(--caution); }
+.card--blocked { border-left: 4px solid var(--blocked); opacity: .9; }
+.card header { display: flex; justify-content: space-between; align-items: baseline; }
+.card__price { font-size: 20px; font-weight: 800; }
+.card__meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; font-size: 13px; color: var(--muted); }
+.tier-chip--sm { font-size: 13px; padding: 3px 10px; }
+.card__reasons { margin: 6px 0; padding-left: 18px; font-size: 14px; }
+.card__src { color: var(--muted); font-size: 12px; }
+.card__ok { font-size: 14px; color: var(--muted); margin: 6px 0; }
+.card__buy { width: 100%; min-height: 48px; border-radius: 12px; border: 0; background: var(--neutral); color: #fff; font: inherit; font-weight: 700; cursor: pointer; margin-top: 6px; }
+.buy { max-width: 420px; width: calc(100% - 32px); border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); padding: 20px; }
+.buy::backdrop { background: rgba(5, 8, 15, .7); }
+.buy h2 { font-size: 18px; margin: 0 0 10px; }
+.buy__reasons { padding-left: 18px; font-size: 14px; }
+.buy__muted { color: var(--muted); }
+.buy__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.buy__actions button { min-height: 48px; border-radius: 12px; font: inherit; font-weight: 700; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+.buy__note { color: var(--muted); font-size: 12px; text-align: center; }
+.audit { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+.audit h2 { font-size: 15px; margin: 0 0 8px; word-break: break-all; }
+.audit__list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; font-size: 13px; }
+.audit__list li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--bg); }
+.audit__broken { outline: 2px solid var(--blocked); }
+.audit__actor { color: var(--muted); }
+.audit__hash { color: var(--muted); font-size: 12px; }
+.audit__verify { width: 100%; min-height: 48px; margin-top: 10px; border-radius: 12px; border: 0; background: var(--neutral); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.audit__ok { color: var(--trusted); font-weight: 700; text-align: center; }
+.audit__bad { color: var(--blocked); font-weight: 700; text-align: center; }

@@ -104,7 +104,8 @@ def build_say(results: list[dict]) -> str:
         parts.append(f"{best['store']['name']}, ${best['price']:.0f}: signals verified.")
     blocked = next((r for r in results if r["tier"] == "blocked"), None)
     if blocked and blocked["reasons"]:
-        parts.append(f"Blocked: {blocked['store']['name']}, {blocked['reasons'][0]['text'].lower()}.")
+        reason = blocked["reasons"][0]["text"]
+        parts.append(f"Blocked: {blocked['store']['name']}, {reason[:1].lower() + reason[1:]}.")
     parts.append("Your call.")
     return " ".join(parts)
 
