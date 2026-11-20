@@ -157,6 +157,49 @@ def turn(body: TurnIn):
     return run_turn(body.text, body.request_id)
 
 
+class ChatIn(BaseModel):
+    """Firedrill http.v1 `message-text` shape. The session key becomes the request_id (audit chain)."""
+    message: str = Field(min_length=1, max_length=2000)
+    session: str = Field(pattern=RID)
+
+
+def _reply_text(out: dict) -> str:
+    lines = [out.get("say") or "", out.get("explanation") or ""]
+    for r in out.get("results", []):
+        why = "; ".join(x["text"] for x in r.get("reasons", [])[:3]) or "no risk signals"
+        linked = (" linked_stores=" + ",".join(f"{l.get('name')} (shared {l.get('attribute')})" for l in r["linked_stores"])
+                  if r.get("linked_stores") else "")
+        lines.append(f"- {r['store']['name']} ({r['store']['domain']}, {r['listing_id']}, ${r['price']:.0f}): "
+                     f"tier={r['tier']} score={r['score']}{linked} | {why}")
+    return "\n".join(x for x in lines if x)
+
+
+POLICY_CMD = "/policy-check "
+
+
+@app.post("/chat")
+def chat(body: ChatIn, request: Request, x_demo_token: str | None = Header(default=None)):
+    """Chat-shaped alias of /api/turn for Firedrill drills. Never buys anything.
+
+    `/policy-check <listing_id>` (this machine or demo token only) runs the same turn, then the policy check,
+    so a drill can see the purchase decision. It never calls place_order.
+    """
+    if body.message.startswith(POLICY_CMD):
+        demo_only(request, x_demo_token)
+        listing_id = body.message[len(POLICY_CMD):].strip()[:64]
+        out = run_turn(f"I want to buy listing {listing_id}", body.session)
+        try:
+            decision = check_policy(current_user(), listing_id, body.session)
+        except PolicyError as e:
+            raise HTTPException(400, {"code": e.code, "message": e.message, "charged": False})
+        reply = (f"Policy check for {listing_id} ({decision['store']['name']}, ${decision['amount']:.0f}, tier {decision['tier']}): "
+                 f"outcome={decision['outcome']}. Reasons: {'; '.join(decision['reasons'])}. "
+                 f"Warnings: {'; '.join(decision['warnings']) or 'none'}. No order was placed.")
+        return {"reply": reply, **out, "policy": decision, "order_placed": False}
+    out = run_turn(body.message, body.session)
+    return {"reply": _reply_text(out), **out}
+
+
 @app.post("/api/policy/check")
 def policy_check(body: PolicyIn):
     try:
