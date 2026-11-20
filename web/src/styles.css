@@ -1,0 +1,105 @@
+:root {
+  --bg: #0b0f1a;
+  --surface: #141a2a;
+  --border: #263049;
+  --text: #e8ecf6;
+  --muted: #9aa5c0;
+  --neutral: #5b8cff;
+  --trusted: #22c55e;
+  --caution: #f59e0b;
+  --blocked: #ef4444;
+  --verify: #8b5cf6;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body { min-height: 100dvh; background: radial-gradient(120% 80% at 50% 0%, #111830 0%, var(--bg) 60%); }
+a { color: var(--neutral); }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.page { max-width: 560px; margin: 0 auto; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); }
+
+/* Orb */
+.orb {
+  position: relative; display: block; padding: 0; margin: 0 auto;
+  border: 0; background: transparent; cursor: pointer; border-radius: 50%;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.orb:focus-visible { outline: 3px solid var(--text); outline-offset: 4px; }
+.orb-canvas, .orb-eyes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.orb-eyes { overflow: visible; }
+
+.orb-fallback {
+  position: absolute; inset: 19%; border-radius: 50%;
+  filter: blur(1px);
+  transition: background 400ms ease, box-shadow 400ms ease, transform 120ms linear;
+}
+.orb-fallback--breathe { animation: orb-breathe 4s ease-in-out infinite; }
+@keyframes orb-breathe { 50% { inset: 18%; } }
+
+/* Label */
+.orb-label {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 8px; min-height: 64px; text-align: center;
+}
+.orb-label__text { color: var(--muted); font-size: 15px; }
+.tier-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 14px; border-radius: 999px; font-weight: 700; font-size: 17px;
+  color: #fff;
+}
+.tier-chip__icon { font-weight: 900; }
+.tier-chip--trusted { background: #15803d; }
+.tier-chip--caution { background: var(--caution); color: #1a1306; } /* dark text on amber */
+.tier-chip--blocked { background: #b91c1c; }
+.tier-chip--verify { background: #6d28d9; }
+
+/* Home */
+.home { display: flex; flex-direction: column; min-height: 100dvh; }
+.home__stage { flex: 1; display: flex; flex-direction: column; justify-content: center; padding-top: 16px; }
+.home__form { display: grid; gap: 10px; }
+.home__form input, .home__form button, .lab button:not(.orb) {
+  min-height: 48px; font: inherit; border-radius: 14px;
+}
+.home__form input {
+  width: 100%; padding: 0 16px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+}
+.home__form input:focus { outline: 2px solid var(--neutral); outline-offset: 1px; }
+.home__form button {
+  border: 0; background: var(--neutral); color: #fff; font-weight: 700; cursor: pointer;
+}
+.home__foot { text-align: center; padding-top: 16px; font-size: 13px; opacity: 0.6; }
+
+/* Lab */
+.lab__head { display: flex; justify-content: space-between; align-items: baseline; }
+.lab__head h1 { font-size: 18px; margin: 0; }
+.lab__stage { padding: 16px 0; }
+.lab__controls { display: grid; gap: 12px; }
+.lab fieldset {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  border: 1px solid var(--border); border-radius: 14px; padding: 12px;
+}
+.lab legend { color: var(--muted); font-size: 13px; padding: 0 6px; }
+.lab button:not(.orb) {
+  min-height: 44px; padding: 0 14px; font-size: 14px; cursor: pointer;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+}
+.lab button:not(.orb)[aria-pressed="true"] { background: var(--neutral); border-color: var(--neutral); color: #fff; }
+.lab__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; width: 100%; }
+.lab__grid button { font-size: 12px; min-height: 44px; }
+.lab input[type="range"] { width: 100%; }
+.lab__check { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; }
+.lab__err { color: var(--blocked); font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .orb-fallback--breathe { animation: none; }
+}
