@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, type Result, type TurnResponse } from "../api";
 import { Orb } from "../orb/Orb";
 import { OrbLabel } from "../orb/OrbLabel";
@@ -15,6 +15,18 @@ export function Home() {
   const [buying, setBuying] = useState<Result | null>(null);
   const [showAudit, setShowAudit] = useState(false);
   const [error, setError] = useState("");
+  const [verified, setVerified] = useState<boolean | null>(null);
+  useEffect(() => {
+    api.me().then((m) => setVerified(m.verified)).catch(() => setVerified(null));
+  }, []);
+
+  // One-time signup verification. TODO(Darren): open the real Persona sandbox inquiry here.
+  const verifyOnce = async () => {
+    const inquiryId = "inq_signup_" + Math.random().toString(36).slice(2, 10);
+    await api.personaStubPass(inquiryId);
+    const r = await api.verifyMe(inquiryId);
+    setVerified(r.verified);
+  };
   const agentState = useOrbStore((s) => s.agentState);
   const { setAgentState, setTier, setLabel } = useOrbStore.getState();
 
@@ -53,13 +65,17 @@ export function Home() {
   const closeBuy = (order?: unknown) => {
     setBuying(null);
     if (turn) setTier(turn.tier); // back to the scan verdict after the verify step
-    if (order) setShowAudit(true);
+    if (order) {
+      setShowAudit(true);
+      setVerified(true);
+    }
   };
 
   const reset = async () => {
     await api.reset();
     setTurn(null);
     setShowAudit(false);
+    setVerified(false);
     setTier(null);
     setLabel("");
     setAgentState("idle");
@@ -75,6 +91,13 @@ export function Home() {
         <Orb size={size} onToggle={toggleTalk} />
         <OrbLabel />
       </section>
+
+      {verified === false ? (
+        <div className="onboard">
+          <p><strong>One step to let Warden shop for you.</strong> Verify once with Persona (ID + selfie). After that, buying is just tap and confirm.</p>
+          <button type="button" onClick={verifyOnce}>Verify once with Persona</button>
+        </div>
+      ) : null}
 
       <form className="home__form" onSubmit={submit}>
         <label className="sr-only" htmlFor="ask">Ask Warden</label>

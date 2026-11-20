@@ -78,22 +78,22 @@ export function BuyDialog({ result, requestId, onClose }: { result: Result; requ
             {decision.reasons.map((r) => (
               <li key={r}>{r}</li>
             ))}
-            {decision.score_reasons.map((r) => (
-              <li key={r} className="buy__muted">{r}</li>
+            {decision.warnings.map((w) => (
+              <li key={w} className="buy__warn">! {w}</li>
             ))}
           </ul>
           {step === "verify" ? (
             <div className="buy__verify">
-              <p>🔒 Over your limit — verify it's you with Persona (ID + selfie).</p>
+              <p>🔒 One-time check: verify it's you with Persona (ID + selfie). You won't be asked again.</p>
               <div className="buy__actions">
                 <button type="button" onClick={close}>Cancel</button>
-                <button type="button" onClick={verifyWithPersona}>Verify with Persona</button>
+                <button type="button" className="buy__primary" onClick={verifyWithPersona}>Verify & buy</button>
               </div>
             </div>
           ) : (
             <div className="buy__actions">
               <button type="button" onClick={close} disabled={step === "placing"}>Cancel</button>
-              <button type="button" onClick={confirm} disabled={step === "placing"}>
+              <button type="button" className="buy__primary" onClick={confirm} disabled={step === "placing"}>
                 {step === "placing" ? "Placing…" : "Confirm"}
               </button>
             </div>

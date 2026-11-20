@@ -45,6 +45,15 @@ def test_pasted_link_scans_that_store():
     assert unknown["results"] == [] and unknown["tier"] == "caution"
 
 
+def test_signup_verify_endpoint():
+    assert client.get("/api/me").json()["verified"] is False
+    assert client.post("/api/me/verify", json={"inquiry_id": "inq_x"}).status_code == 400
+    client.post("/api/persona/stub-pass/inq_x")
+    assert client.post("/api/me/verify", json={"inquiry_id": "inq_x"}).json()["verified"] is True
+    d = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq2"}).json()
+    assert d["outcome"] == "allow"
+
+
 def test_buy_flow_with_step_up():
     d = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq"}).json()
     assert d["outcome"] == "verify"

@@ -14,7 +14,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from . import attacks, audit, db, persona, voice  # noqa: E402
 from .agent import run_turn  # noqa: E402
-from .policy import PolicyError, check_policy, place_order  # noqa: E402
+from .policy import PolicyError, check_policy, get_profile, place_order, verify_identity  # noqa: E402
 from .seed import reset_and_seed  # noqa: E402
 
 @asynccontextmanager
@@ -69,6 +69,24 @@ class SdpIn(BaseModel):
 def health():
     return {"ok": True, "voice": bool(os.environ.get("OPENAI_API_KEY")), "llm": bool(os.environ.get("ANTHROPIC_API_KEY")),
             "persona": persona.enabled()}
+
+
+class VerifyIn(BaseModel):
+    inquiry_id: str = Field(min_length=1, max_length=128)
+
+
+@app.get("/api/me")
+def me():
+    return get_profile(current_user())
+
+
+@app.post("/api/me/verify")
+def me_verify(body: VerifyIn):
+    """One-time Persona verification at signup."""
+    try:
+        return verify_identity(current_user(), body.inquiry_id)
+    except PolicyError as e:
+        raise HTTPException(400, {"code": e.code, "message": e.message, "charged": False})
 
 
 @app.post("/api/turn")

@@ -15,7 +15,7 @@ TODAY = date.today()
 USERS = [
     {"id": "u_demo", "name": "Demo User", "per_purchase_limit": 200, "monthly_cap": 600,
      "allow_marketplace": 1, "blocked_stores": "[]",
-     "preferences": json.dumps({"brands": ["Apple"], "condition": "new"}), "verified": 1},
+     "preferences": json.dumps({"brands": ["Apple"], "condition": "new"}), "verified": 0},
 ]
 
 # domain_created is used by scan_store for the domain-age signal (RDAP stand-in).

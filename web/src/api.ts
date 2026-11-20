@@ -33,6 +33,7 @@ export interface Decision {
   decision_id: string;
   outcome: "allow" | "verify" | "deny";
   reasons: string[];
+  warnings: string[];
   listing_id: string;
   store: { id: string; name: string; domain: string };
   tier: ResultTier;
@@ -100,5 +101,7 @@ export const api = {
   personaStubPass: (inquiry_id: string) => call<unknown>("POST", `/api/persona/stub-pass/${inquiry_id}`),
   audit: (request_id: string) => call<{ events: AuditEvent[] }>("GET", `/api/audit/${request_id}`),
   verify: (request_id: string) => call<VerifyResult>("POST", `/api/audit/${request_id}/verify`),
+  me: () => call<{ verified: boolean; per_purchase_limit: number; monthly_cap: number }>("GET", "/api/me"),
+  verifyMe: (inquiry_id: string) => call<{ verified: boolean }>("POST", "/api/me/verify", { inquiry_id }),
   reset: () => call<unknown>("POST", "/api/reset_demo"),
 };

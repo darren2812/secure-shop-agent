@@ -49,21 +49,25 @@ def check_policy(user_id: str, listing_id: str, request_id: str) -> dict:
         row = conn.execute("SELECT spent FROM ledger WHERE user_id = ? AND month = ?", (user_id, _month())).fetchone()
         spent = float(row[0]) if row else 0.0
 
+        warnings: list[str] = []
         if scan["tier"] == "blocked":
             outcome = "deny"
             reasons.append(f"{scan['store']['name']} is blocked: " + (scan["reasons"][0]["text"] if scan["reasons"] else "low trust"))
         elif spent + amount > user["cap"]:
             outcome = "deny"
             reasons.append(f"Monthly cap ${user['cap']:.0f} would be exceeded (spent ${spent:.0f})")
-        elif amount > user["limit"]:
+        elif not user["verified"]:
+            # Identity is verified once (at signup or first purchase), never per purchase.
             outcome = "verify"
-            reasons.append(f"Over your ${user['limit']:.0f} per-purchase limit")
-        elif scan["tier"] == "caution":
-            outcome = "verify"
-            reasons.append("Store is in Caution tier")
+            reasons.append("One-time identity check before Warden can buy for you")
         else:
             outcome = "allow"
-            reasons.append("Within your limits and store signals verified")
+            reasons.append("Identity verified and store signals checked")
+        if outcome != "deny":
+            if amount > user["limit"]:
+                warnings.append(f"Over your usual ${user['limit']:.0f} per purchase")
+            if scan["tier"] == "caution":
+                warnings.append("Store is in Caution tier: " + (scan["reasons"][0]["text"] if scan["reasons"] else "check the reasons"))
 
         decision_id = "dec_" + uuid.uuid4().hex[:16]
         conn.execute(
@@ -75,6 +79,7 @@ def check_policy(user_id: str, listing_id: str, request_id: str) -> dict:
         "decision_id": decision_id,
         "outcome": outcome,
         "reasons": reasons,
+        "warnings": warnings,
         "listing_id": listing_id,
         "store": scan["store"],
         "tier": scan["tier"],
@@ -84,6 +89,22 @@ def check_policy(user_id: str, listing_id: str, request_id: str) -> dict:
     }
     write_audit_event(request_id, "check_policy", "code", decision)
     return decision
+
+
+def verify_identity(user_id: str, inquiry_id: str) -> dict:
+    """One-time Persona verification (signup). The server checks the inquiry, never the browser's word."""
+    if not persona.is_passed(inquiry_id):
+        raise PolicyError("verification_failed", "Identity verification not completed")
+    with db.connect() as conn:
+        conn.execute("UPDATE users SET verified = 1, persona_inquiry_id = ? WHERE id = ?", (inquiry_id, user_id))
+    write_audit_event(f"user_{user_id}", "identity_verified", "persona", {"inquiry_id": inquiry_id})
+    return {"verified": True}
+
+
+def get_profile(user_id: str) -> dict:
+    with db.connect() as conn:
+        u = _user(conn, user_id)
+    return {"verified": u["verified"], "per_purchase_limit": u["limit"], "monthly_cap": u["cap"]}
 
 
 def place_order(user_id: str, decision_id: str, verification_id: str | None = None) -> dict:
@@ -102,6 +123,7 @@ def place_order(user_id: str, decision_id: str, verification_id: str | None = No
         if outcome == "verify":
             if not verification_id or not persona.is_passed(verification_id):
                 raise PolicyError("verification_required", "Not charged: identity verification required")
+            conn.execute("UPDATE users SET verified = 1, persona_inquiry_id = ? WHERE id = ?", (verification_id, user_id))
 
         # Single use, even with concurrent requests: only one UPDATE can flip used 0 -> 1.
         cur = conn.execute("UPDATE decisions SET used = 1, verification_id = ? WHERE id = ? AND used = 0",

@@ -152,3 +152,8 @@ a { color: var(--neutral); }
 .attack__quote span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 .attack__delta { font-weight: 700; }
 .home__why { margin: 16px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 14px; line-height: 1.45; }
+.onboard { margin: 12px 0; padding: 14px; border-radius: 16px; border: 1px solid var(--verify); background: rgba(139,92,246,.08); display: grid; gap: 10px; font-size: 14px; }
+.onboard p { margin: 0; }
+.onboard button { min-height: 48px; border-radius: 12px; border: 0; background: var(--verify); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+.buy__warn { color: var(--caution); }
+.buy__actions .buy__primary { background: var(--neutral); border-color: var(--neutral); color: #fff; }

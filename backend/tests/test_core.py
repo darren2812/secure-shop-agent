@@ -71,14 +71,10 @@ def test_audit_deleted_event_detected():
     assert verify_trail("req2")["intact"] is False
 
 
-def test_trusted_over_limit_needs_verify():
-    d = check_policy("u_demo", "l_soundshack", "r1")  # $245 > $200 limit
-    assert d["outcome"] == "verify"
-
-
-def test_over_limit_requires_persona_then_orders_once():
+def test_unverified_user_verifies_once_then_buys_without_friction():
     d = check_policy("u_demo", "l_bestbuy", "r2")
-    assert d["outcome"] == "verify" and "limit" in d["reasons"][0]
+    assert d["outcome"] == "verify" and "One-time" in d["reasons"][0]
+    assert any("usual $200" in w for w in d["warnings"])  # over limit is a warning, not a gate
     with pytest.raises(PolicyError) as e:
         place_order("u_demo", d["decision_id"])
     assert e.value.code == "verification_required" and not e.value.charged
@@ -88,7 +84,29 @@ def test_over_limit_requires_persona_then_orders_once():
     with pytest.raises(PolicyError) as e:
         place_order("u_demo", d["decision_id"], "inq_demo")
     assert e.value.code == "already_used"
+    # second purchase: already verified, no step-up
+    d2 = check_policy("u_demo", "l_soundshack", "r2b")
+    assert d2["outcome"] == "allow"
+    assert place_order("u_demo", d2["decision_id"])["status"] == "placed"
     assert verify_trail("r2")["intact"] is True
+
+
+def test_signup_verification_then_allow():
+    from app.policy import verify_identity
+    with pytest.raises(PolicyError):
+        verify_identity("u_demo", "inq_never_completed")
+    persona.stub_mark_passed("inq_signup")
+    verify_identity("u_demo", "inq_signup")
+    assert check_policy("u_demo", "l_amz", "r5")["outcome"] == "allow"
+
+
+def test_monthly_cap_still_denies():
+    persona.stub_mark_passed("inq_cap")
+    from app.policy import verify_identity
+    verify_identity("u_demo", "inq_cap")
+    for i, l in enumerate(["l_bestbuy", "l_soundshack"]):
+        place_order("u_demo", check_policy("u_demo", l, f"rc{i}")["decision_id"])
+    assert check_policy("u_demo", "l_amz", "rc3")["outcome"] == "deny"  # 249+245+229 > 600
 
 
 def test_blocked_store_denied():
