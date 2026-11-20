@@ -24,7 +24,7 @@ def turn(text, request_id=None):
 
 def purchases():
     with db.connect() as conn:
-        return conn.execute("SELECT COUNT(*) FROM purchases").fetchone()[0]
+        return conn.execute("SELECT COUNT(*) FROM purchases WHERE id NOT LIKE 'pur_seed_%'").fetchone()[0]
 
 
 def test_turn_returns_code_built_verdict():
@@ -85,6 +85,22 @@ def test_report_flags_store_and_links_others():
     r = client.post("/api/turn", json={"text": "AirPods Pro"}).json()
     bb = next(x for x in r["results"] if x["listing_id"] == "l_bestbuy")
     assert bb["tier"] == "blocked"
+
+
+def test_past_purchases_listed_and_reportable():
+    r = client.get("/api/purchases").json()["purchases"]
+    assert len(r) == 4 and [p["date"] for p in r] == sorted((p["date"] for p in r), reverse=True)
+    assert client.get("/api/me").json()["spent_this_month"] == 0
+    north = next(p for p in r if p["store_id"] == "northpeak")
+    assert north["store_name"] == "NorthPeak Audio" and north["amount"] == 255 and north["reported"] is False
+    tier = lambda: next(x for x in client.post("/api/turn", json={"text": "AirPods Pro"}).json()["results"]
+                        if x["listing_id"] == "l_northpeak")["tier"]
+    assert tier() != "blocked"
+    assert client.post("/api/reports", json={"store_id": "northpeak"}).status_code == 200
+    after = client.get("/api/purchases").json()["purchases"]
+    assert next(p for p in after if p["store_id"] == "northpeak")["reported"] is True
+    assert sum(p["reported"] for p in after) == 1
+    assert tier() == "blocked"
 
 
 def test_reporting_an_already_flagged_store_succeeds():

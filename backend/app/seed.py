@@ -80,6 +80,16 @@ LISTINGS = [
     {"id": "l_northpeak", "store_id": "northpeak", "product": PRODUCT, "title": "Apple AirPods Pro 2", "price": 255.00},
 ]
 
+# Past orders from earlier months, so this month's spend and cap are untouched (no ledger rows).
+# Only purchases rows (decision_id is a unique placeholder; no decisions row is needed to list them).
+_MONTH_START = TODAY.replace(day=1)
+PAST_PURCHASES = [
+    {"id": "pur_seed_bestbuy", "listing_id": "l_bestbuy", "days_before_month": 55},
+    {"id": "pur_seed_soundshack", "listing_id": "l_soundshack", "days_before_month": 85},
+    {"id": "pur_seed_northpeak", "listing_id": "l_northpeak", "days_before_month": 10},
+    {"id": "pur_seed_techdeals", "listing_id": "l_amz", "days_before_month": 20},
+]
+
 REFERENCE_PRICES = [
     {"product": PRODUCT, "typical_price": 249.00,
      "price_history": [249, 249, 229, 249, 239, 249], "source": "seeded"},
@@ -138,4 +148,12 @@ def _reset_and_seed() -> None:
             conn.execute(
                 "INSERT INTO reference_prices (product, typical_price, price_history, source, fetched_at) VALUES (?,?,?,?,?)",
                 (r["product"], r["typical_price"], json.dumps(r["price_history"]), r["source"], str(TODAY)),
+            )
+        prices = {l["id"]: l["price"] for l in LISTINGS}
+        for p in PAST_PURCHASES:
+            when = (_MONTH_START - timedelta(days=p["days_before_month"])).isoformat() + "T15:00:00+00:00"
+            conn.execute(
+                "INSERT INTO purchases (id, request_id, user_id, listing_id, amount, status, decision_id, verification_id, created_at)"
+                " VALUES (?,?,?,?,?,'delivered',?,NULL,?)",
+                (p["id"], "req_" + p["id"], "u_demo", p["listing_id"], prices[p["listing_id"]], "dec_" + p["id"], when),
             )

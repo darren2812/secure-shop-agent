@@ -38,7 +38,7 @@ def test_purchases_enforces_both_unique_keys(seeded, id, decision_id):
         with db.connect() as conn:
             conn.execute(sql, (id, decision_id))
     with db.connect() as conn:
-        assert conn.execute("SELECT COUNT(*) FROM purchases").fetchone()[0] == 1
+        assert conn.execute("SELECT COUNT(*) FROM purchases WHERE id NOT LIKE 'pur_seed_%'").fetchone()[0] == 1
 
 
 def test_sql_literals_and_bound_values_round_trip(seeded):

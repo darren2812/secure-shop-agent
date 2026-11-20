@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Home } from "./pages/Home";
 import { OrbLab } from "./pages/OrbLab";
 import { Attack } from "./pages/Attack";
+import { Autopilot } from "./demo/Autopilot";
+import { useAutopilot } from "./demo/controller";
 
 /** Tiny hash router: "#/" → Home, "#/orb-lab" → OrbLab. Also accepts path /orb-lab. */
 function currentRoute(): string {
@@ -22,7 +24,18 @@ export function App() {
     };
   }, []);
 
-  if (route.startsWith("/orb-lab")) return <OrbLab />;
-  if (route.startsWith("/attack")) return <Attack />;
-  return <Home />;
+  // Fixed slots: Home keeps its state while the demo autopilot shows #/attack (hidden, display:none).
+  // Without the autopilot this is the old behavior: one page per route.
+  const keepHome = useAutopilot((s) => s.keepHome);
+  const isLab = route.startsWith("/orb-lab");
+  const isAttack = route.startsWith("/attack");
+  const onHome = !isLab && !isAttack;
+  return (
+    <>
+      {onHome || keepHome ? <div style={{ display: onHome ? "contents" : "none" }}><Home /></div> : null}
+      {isLab ? <OrbLab /> : null}
+      {isAttack ? <Attack /> : null}
+      <Autopilot />
+    </>
+  );
 }

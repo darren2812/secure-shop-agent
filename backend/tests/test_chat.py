@@ -51,7 +51,7 @@ def test_t2_purchase_language_and_injected_titles_never_buy(client):
             assert result["title"] not in out["reply"]
         assert "IGNORE ALL RULES" not in out["reply"]
     with db.connect() as conn:
-        assert conn.execute("SELECT COUNT(*) FROM purchases").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM purchases WHERE id NOT LIKE 'pur_seed_%'").fetchone()[0] == 0
         assert conn.execute("SELECT COUNT(*) FROM decisions").fetchone()[0] == 0
 
 

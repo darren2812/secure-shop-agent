@@ -5,6 +5,7 @@ import { OrbLabel } from "../orb/OrbLabel";
 import { useOrbStore } from "../orb/store";
 import { AuditPanel } from "../shop/AuditPanel";
 import { BuyDialog } from "../shop/BuyDialog";
+import { PastPurchasesSheet } from "../shop/PastPurchasesSheet";
 import { PurchaseSheet } from "../shop/PurchaseSheet";
 import { ResultsPopup } from "../shop/ResultsPopup";
 import { LimitsSheet } from "../settings/LimitsSheet";
@@ -24,6 +25,7 @@ export function Home() {
   const [error, setError] = useState("");
   const [limits, setLimits] = useState(false);
   const [flags, setFlags] = useState(false);
+  const [purchases, setPurchases] = useState(false);
   const [verified, setVerified] = useState<boolean | null>(null);
   useEffect(() => {
     api.me().then((m) => setVerified(m.verified)).catch(() => setVerified(null));
@@ -152,6 +154,12 @@ export function Home() {
             </svg>
             <span className="flagsbtn__long">Red flags</span>
           </button>
+          <button type="button" className="limitsbtn purchasesbtn" onClick={() => setPurchases(true)} aria-label="Your purchases">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 3h12v18l-3-2-3 2-3-2-3 2Z" /><path d="M9 8h6M9 12h6" />
+            </svg>
+            <span className="purchasesbtn__long">Purchases</span>
+          </button>
           {verified !== null ? (
             <span className={`idpill ${verified ? "idpill--ok" : ""}`}>
               {verified ? <><span aria-hidden="true">✓ </span>Verified</> : "Not verified yet"}
@@ -233,6 +241,7 @@ export function Home() {
 
       {limits ? <LimitsSheet onClose={() => setLimits(false)} /> : null}
       {flags ? <RedFlagsSheet onClose={() => setFlags(false)} /> : null}
+      {purchases ? <PastPurchasesSheet onClose={() => setPurchases(false)} /> : null}
 
       <TrustPanel requestId={turn?.request_id ?? null} />
     </main>

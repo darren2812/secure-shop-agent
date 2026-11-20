@@ -21,6 +21,7 @@ from .agent import run_turn  # noqa: E402
 from .chat import chat_reply, chat_status  # noqa: E402
 from .policy import PolicyError, check_policy, get_profile, place_order, set_limits, verify_identity  # noqa: E402
 from .seed import reset_and_seed  # noqa: E402
+from .tools import safe_name  # noqa: E402
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -280,6 +281,20 @@ def report(body: ReportIn):
     if body.request_id:
         audit.write_audit_event(body.request_id, "store_reported", "user", {"store_id": body.store_id})
     return {"store_id": body.store_id, "flagged": True}
+
+
+@app.get("/api/purchases")
+def purchases_list():
+    """Past and demo orders, newest first, with whether the store has been reported. Read-only, code-only."""
+    with db.connect() as conn:
+        rows = conn.execute(
+            "SELECT p.id, s.id, s.name, s.domain, l.title, p.amount, p.created_at, p.status, s.flagged"
+            " FROM purchases p JOIN listings l ON l.id = p.listing_id JOIN stores s ON s.id = l.store_id"
+            " WHERE p.user_id = ? ORDER BY p.created_at DESC", (current_user(),)).fetchall()
+    return {"purchases": [
+        {"id": r[0], "store_id": r[1], "store_name": safe_name(r[2]), "domain": r[3], "title": safe_name(r[4]),
+         "amount": float(r[5]), "date": str(r[6])[:10], "status": r[7], "reported": bool(r[8])}
+        for r in rows]}
 
 
 @app.post("/api/reset_demo", dependencies=[Depends(demo_only)])

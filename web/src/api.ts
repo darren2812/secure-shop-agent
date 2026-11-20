@@ -119,6 +119,11 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
+export type Purchase = {
+  id: string; store_id: string; store_name: string; domain: string | null; title: string;
+  amount: number; date: string; status: string; reported: boolean;
+};
+
 export const api = {
   turn: (text: string, request_id?: string) => call<TurnResponse>("POST", "/api/turn", { text, request_id }),
   checkPolicy: (listing_id: string, request_id: string) =>
@@ -133,6 +138,7 @@ export const api = {
     call<Profile>("PUT", "/api/me/limits", l),
   verifyMe: (inquiry_id: string) => call<{ verified: boolean }>("POST", "/api/me/verify", { inquiry_id }),
   redFlags: () => call<{ stores: RedFlagStore[] }>("GET", "/api/red-flags"),
+  purchases: () => call<{ purchases: Purchase[] }>("GET", "/api/purchases"),
   reset: () => call<unknown>("POST", "/api/reset_demo"),
   report: (storeId: string, requestId?: string) =>
     call<{ store_id: string; flagged: boolean }>("POST", "/api/reports", { store_id: storeId, request_id: requestId }),
