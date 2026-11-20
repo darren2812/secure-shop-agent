@@ -84,52 +84,67 @@ export function Home() {
 
   // Tap orb = start / stop voice (GPT-Live, falls back to browser speech).
   const toggleTalk = () => (voice.mode === "off" || voice.mode === "error" ? void voice.start() : voice.stop());
-  const size = typeof window !== "undefined" ? Math.max(280, Math.min(360, window.innerWidth - 48)) : 320;
+  const size = typeof window !== "undefined" ? Math.max(260, Math.min(320, window.innerWidth - 96)) : 320;
 
   return (
     <main className="page home">
-      <section className="home__stage">
-        <Orb size={size} onToggle={toggleTalk} />
-        <OrbLabel />
+      <section className="home__stage stage oscuro grano" aria-labelledby="home-title">
+        <div className="stage__bar">
+          <p className="wordmark">Warden</p>
+          <nav className="stage__nav" aria-label="Demo">
+            <a href="#/attack">Attack</a>
+          </nav>
+        </div>
+        <div className="stage__inner">
+          <h1 id="home-title" className="titular stage__title">The agent that's safe to give your card to.</h1>
+          <Orb size={size} onToggle={toggleTalk} />
+          <OrbLabel />
+        </div>
+        <span className="stage__brandbar" aria-hidden="true" />
       </section>
 
-      {verified === false ? (
-        <div className="onboard">
-          <p><strong>One step to let Warden shop for you.</strong> Verify once with Persona (ID + selfie). After that, buying is just tap and confirm.</p>
-          <button type="button" onClick={verifyOnce}>Verify once with Persona</button>
-        </div>
-      ) : null}
+      <div className="home__body">
+        {verified === false ? (
+          <div className="onboard">
+            <p><strong>One step before Warden can buy for you.</strong> Verify once with Persona (ID + selfie). After that, buying is tap and confirm.</p>
+            <button type="button" className="btn btn--vio" onClick={verifyOnce}>Verify once with Persona</button>
+          </div>
+        ) : null}
 
-      <form className="home__form" onSubmit={submit}>
-        <label className="sr-only" htmlFor="ask">Ask Warden</label>
-        <input id="ask" type="text" placeholder="What do you want to buy?" value={text}
-          onChange={(e) => setText(e.target.value)} autoComplete="off" />
-        <label className="sr-only" htmlFor="link">Paste a link</label>
-        <input id="link" type="url" inputMode="url" placeholder="Paste a link" value={link}
-          onChange={(e) => setLink(e.target.value)} autoComplete="off" />
-        <button type="submit" disabled={agentState === "scanning"}>Check</button>
-      </form>
-
-      {error || voice.error ? <p className="home__err" role="alert">{error || voice.error}</p> : null}
-
-      {turn ? (
-        <>
-          {turn.explanation ? <p className="home__why">{turn.explanation}</p> : null}
-          <Results results={turn.results} onBuy={setBuying} />
-          <button type="button" className="link home__receipt" onClick={() => setShowAudit((v) => !v)}>
-            {showAudit ? "Hide receipt" : "View receipt"}
+        <form className="home__form" onSubmit={submit}>
+          <label className="sr-only" htmlFor="ask">Ask Warden</label>
+          <input id="ask" type="text" placeholder="What do you want to buy?" value={text}
+            onChange={(e) => setText(e.target.value)} autoComplete="off" />
+          <label className="sr-only" htmlFor="link">Paste a link</label>
+          <input id="link" type="url" inputMode="url" placeholder="Or paste a product link" value={link}
+            onChange={(e) => setLink(e.target.value)} autoComplete="off" />
+          <button type="submit" className="btn btn--marca" disabled={agentState === "scanning"}>
+            {agentState === "scanning" ? "Checking stores…" : "Check stores"}
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" /></svg>
           </button>
-          {showAudit ? <AuditPanel requestId={turn.request_id} /> : null}
-        </>
-      ) : null}
+        </form>
+
+        {error || voice.error ? <p className="home__err" role="alert">{error || voice.error}</p> : null}
+
+        {turn ? (
+          <>
+            {turn.explanation ? <p className="home__why">{turn.explanation}</p> : null}
+            <Results results={turn.results} onBuy={setBuying} />
+            <button type="button" className="link home__receipt" onClick={() => setShowAudit((v) => !v)}>
+              {showAudit ? "Hide receipt" : "View receipt"}
+            </button>
+            {showAudit ? <AuditPanel requestId={turn.request_id} /> : null}
+          </>
+        ) : null}
+
+        <footer className="home__foot">
+          <a href="#/attack">attack</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
+        </footer>
+      </div>
 
       {buying && turn ? <BuyDialog result={buying} requestId={turn.request_id} onClose={closeBuy} /> : null}
 
       <TrustPanel requestId={turn?.request_id ?? null} />
-
-      <footer className="home__foot">
-        <a href="#/attack">attack</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
-      </footer>
     </main>
   );
 }

@@ -84,7 +84,7 @@ export function BuyDialog({ result, requestId, onClose }: { result: Result; requ
           </ul>
           {step === "verify" ? (
             <div className="buy__verify">
-              <p>🔒 One-time check: verify it's you with Persona (ID + selfie). You won't be asked again.</p>
+              <p>One-time check: verify it's you with Persona (ID + selfie). You won't be asked again.</p>
               <div className="buy__actions">
                 <button type="button" onClick={close}>Cancel</button>
                 <button type="button" className="buy__primary" onClick={verifyWithPersona}>Verify & buy</button>

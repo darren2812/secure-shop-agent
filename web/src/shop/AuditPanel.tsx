@@ -29,7 +29,7 @@ export function AuditPanel({ requestId }: { requestId: string }) {
         ))}
       </ol>
       {!events.length ? <p className="audit__empty">No events recorded for this request yet.</p> : null}
-      <button type="button" className="audit__verify" onClick={runVerify} disabled={!events.length}>Verify trail</button>
+      <button type="button" className="btn btn--marca audit__verify" onClick={runVerify} disabled={!events.length}>Verify trail</button>
       {verify && verify.events === 0 ? null : verify ? (
         <p className={verify.intact ? "audit__ok" : "audit__bad"} role="status">
           {verify.intact
