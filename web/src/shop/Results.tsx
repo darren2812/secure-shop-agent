@@ -61,7 +61,7 @@ function Row({ r, onBuy }: { r: Result; onBuy: (r: Result) => void }) {
           <Reasons r={r} />
           {r.tier !== "blocked" ? (
             <button type="button" className="btn btn--oscuro card__buy" onClick={() => onBuy(r)}>
-              Buy from {r.store.name} · ${r.price.toFixed(0)}
+              Buy · ${r.price.toFixed(0)}
             </button>
           ) : null}
         </div>
@@ -71,18 +71,20 @@ function Row({ r, onBuy }: { r: Result; onBuy: (r: Result) => void }) {
 }
 
 export function Results({ results, onBuy }: { results: Result[]; onBuy: (r: Result) => void }) {
-  const [showBlocked, setShowBlocked] = useState(false);
+  const [showOthers, setShowOthers] = useState(false);
   const sorted = [...results].sort((a, b) => RANK[a.tier] - RANK[b.tier] || b.score - a.score || a.price - b.price);
   const best = sorted.find((r) => r.tier === "trusted") ?? null;
-  const others = sorted.filter((r) => r !== best && r.tier !== "blocked");
+  const others = sorted.filter((r) => r !== best);
   const blocked = sorted.filter((r) => r.tier === "blocked");
   const avoided = blocked.reduce((s, r) => s + r.price, 0);
+  // With no safe pick, never hide the options: the person has to see the warnings.
+  const open = showOthers || !best;
 
   return (
     <section className="results" aria-label="Results">
       {best ? (
         <article className="best oscuro grano" aria-labelledby="best-title">
-          <p className="best__eyebrow etiqueta" id="best-title">Best pick · highest trust score</p>
+          <p className="best__eyebrow etiqueta" id="best-title">Best pick · safest store</p>
           <div className="best__top">
             <div>
               <h2 className="best__store">{best.store.name}</h2>
@@ -92,41 +94,34 @@ export function Results({ results, onBuy }: { results: Result[]; onBuy: (r: Resu
           </div>
           <div className="best__chips"><TierChip tier={best.tier} /></div>
           <p className="best__reason">{topReason(best)}</p>
-          <button type="button" className="btn btn--marca best__buy" onClick={() => onBuy(best)}>
-            Buy from {best.store.name} · ${best.price.toFixed(0)}
+          <button type="button" className="btn btn--marca best__buy" onClick={() => onBuy(best)}
+            aria-label={`Buy from ${best.store.name} for $${best.price.toFixed(0)}`}>
+            Buy · ${best.price.toFixed(0)}
           </button>
         </article>
       ) : (
-        <p className="results__none">No trusted store found for this item. Review the options below carefully.</p>
+        <p className="results__none">No safe store found for this item. Look at the warnings below before buying.</p>
       )}
+
+      {avoided > 0 ? (
+        <p className="results__avoided">You avoided <strong>${avoided.toFixed(0)}</strong> at {blocked.length === 1 ? "a risky store" : `${blocked.length} risky stores`}.</p>
+      ) : null}
 
       {others.length ? (
         <div>
-          <h2 className="results__h etiqueta">Other options · {others.length}</h2>
-          <ul className="rows">
-            {others.map((r) => <Row key={r.listing_id} r={r} onBuy={onBuy} />)}
-          </ul>
-        </div>
-      ) : null}
-
-      {blocked.length ? (
-        <div>
-          <button type="button" className="results__blocked-toggle" aria-expanded={showBlocked}
-            onClick={() => setShowBlocked((v) => !v)}>
-            <span className="ico" aria-hidden="true">{TIER_LABEL.blocked.icon}</span>
-            <span style={{ flex: 1 }}>{blocked.length} blocked — {showBlocked ? "hide" : "show why"}</span>
-            <span className="row__chev" style={showBlocked ? { transform: "rotate(180deg)" } : undefined}><Chevron /></span>
-          </button>
-          {showBlocked ? (
-            <ul className="rows">
-              {blocked.map((r) => <Row key={r.listing_id} r={r} onBuy={onBuy} />)}
+          {best ? (
+            <button type="button" className="results__more" aria-expanded={open} aria-controls="other-options"
+              onClick={() => setShowOthers((v) => !v)}>
+              <span style={{ flex: 1 }}>{open ? "Hide other options" : `See ${others.length} other option${others.length === 1 ? "" : "s"}`}</span>
+              <span className="row__chev" style={open ? { transform: "rotate(180deg)" } : undefined}><Chevron /></span>
+            </button>
+          ) : null}
+          {open ? (
+            <ul className="rows" id="other-options">
+              {others.map((r) => <Row key={r.listing_id} r={r} onBuy={onBuy} />)}
             </ul>
           ) : null}
         </div>
-      ) : null}
-
-      {avoided > 0 ? (
-        <p className="results__avoided">You avoided <strong>${avoided.toFixed(0)}</strong> at blocked stores.</p>
       ) : null}
     </section>
   );

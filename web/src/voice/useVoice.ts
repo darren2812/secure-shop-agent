@@ -153,11 +153,9 @@ export function useVoice(onAsk: Ask) {
     rec.onresult = async (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       const text = e.results[0][0].transcript as string;
       setAgentState("scanning");
-      const say = await onAsk(text).catch(() => "Something went wrong. Nothing was bought.");
-      const u = new SpeechSynthesisUtterance(say);
-      u.onstart = () => setAgentState("speaking");
-      u.onend = () => setAgentState("idle");
-      speechSynthesis.speak(u);
+      // No browser text-to-speech: only OpenAI's voice speaks. Without GPT-Live the answer is shown on screen.
+      await onAsk(text).catch(() => undefined);
+      setAgentState("idle");
     };
     rec.onerror = () => setAgentState("idle");
     rec.onend = () => setMode("off");
@@ -171,7 +169,7 @@ export function useVoice(onAsk: Ask) {
       await startLive();
     } catch (e) {
       cleanup();
-      setError(`${(e as Error).message} — using browser voice.`);
+      setError(`Voice unavailable (${(e as Error).message}). I'll listen once and show the answer on screen.`);
       startWebSpeech();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

@@ -8,7 +8,7 @@ import {
   type AnimationPlaybackControls,
   type Variants,
 } from "motion/react";
-import { tierHex } from "./colors";
+import { orbHex } from "./colors";
 import { useOrbStore, type AgentState, type Tier } from "./store";
 import { useOrbReducedMotion } from "./useReducedMotion";
 
@@ -136,7 +136,7 @@ export function Eyes({ storeCardDirection = { x: 0.3, y: 1 } }: EyesProps) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const id = (n: string) => `eyes-${uid}-${n}`;
 
-  const tint = tierHex(tier);
+  const tint = orbHex(tier, agentState);
   const rim = mixHex(tint, "#FFFFFF", 0.5);
   const glow = mixHex(tint, "#FFFFFF", 0.3);
 

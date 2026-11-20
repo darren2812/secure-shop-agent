@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FRAG, VERT } from "./shader";
-import { hexToRgb, tierHex } from "./colors";
+import { hexToRgb, orbHex } from "./colors";
 import { useOrbStore, type AgentState } from "./store";
 import { useOrbReducedMotion } from "./useReducedMotion";
 import { Eyes } from "./Eyes";
@@ -111,7 +111,7 @@ function OrbCanvas({ size }: { size: number }) {
 
     // Live (smoothed) values.
     const init = useOrbStore.getState();
-    const color = hexToRgb(tierHex(init.tier));
+    const color = hexToRgb(orbHex(init.tier, init.agentState));
     const colorVel: [number, number, number] = [0, 0, 0];
     let turbulence = STATE_PARAMS[init.agentState].turbulence;
     let spin = STATE_PARAMS[init.agentState].spin;
@@ -129,7 +129,7 @@ function OrbCanvas({ size }: { size: number }) {
       const reducedNow = reducedRef.current;
 
       // Color: critically damped spring, settles in ~400 ms.
-      const target = hexToRgb(tierHex(s.tier));
+      const target = hexToRgb(orbHex(s.tier, s.agentState));
       const omega = 14; // rad/s → ~400 ms settle
       for (let i = 0; i < 3; i++) {
         const x = color[i] - target[i];
@@ -192,8 +192,9 @@ function OrbCanvas({ size }: { size: number }) {
 function OrbFallback() {
   const tier = useOrbStore((s) => s.tier);
   const level = useOrbStore((s) => s.level);
+  const agentState = useOrbStore((s) => s.agentState);
   const reduced = useOrbReducedMotion();
-  const hex = tierHex(tier);
+  const hex = orbHex(tier, agentState);
   const scale = reduced ? 1 : 1 + level * 0.08;
   return (
     <div

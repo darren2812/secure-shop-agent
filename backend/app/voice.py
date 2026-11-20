@@ -68,6 +68,7 @@ def create_session(sdp: str) -> dict:
         "model": os.environ.get("VOICE_MODEL", "gpt-live-1.1"),
         "instructions": INSTRUCTIONS,
         "delegation": {"type": "client"},
+        "audio": {"output": {"voice": os.environ.get("VOICE_NAME", "marin")}},
     }
     try:
         result = client.live.create(session=session, transport={"type": "webrtc", "sdp": sdp})

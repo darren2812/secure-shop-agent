@@ -27,6 +27,8 @@ export interface TurnResponse {
   explanation: string;
   tier: ResultTier | null;
   results: Result[];
+  /** Agent tool call for the UI. The agent never buys; it can only open or point at options. */
+  ui_action?: { type: "show_options" } | { type: "focus_listing"; listing_id: string } | null;
 }
 
 export interface Decision {

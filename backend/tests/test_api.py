@@ -91,3 +91,16 @@ def test_attack_scenarios_keep_verdicts():
     disc = client.post("/api/attacks/fake_discount").json()
     assert any(r["code"] == "fake_discount" for r in disc["after"]["reasons"])
     assert client.post("/api/audit/attack_fraud_ring/verify").json()["intact"] is True
+
+
+def test_buy_intent_opens_sheet_and_focus_never_buys():
+    first = client.post("/api/turn", json={"text": "AirPods Pro"}).json()
+    rid = first["request_id"]
+    r = client.post("/api/turn", json={"text": "I want to buy them", "request_id": rid}).json()
+    assert r["ui_action"] == {"type": "show_options"} and len(r["results"]) == 6
+    r = client.post("/api/turn", json={"text": "the TechDeals one please, buy it now", "request_id": rid}).json()
+    assert r["ui_action"] == {"type": "focus_listing", "listing_id": "l_amz"} and "Confirm" in r["say"]
+    r = client.post("/api/turn", json={"text": "get it from Apple Store Outlet", "request_id": rid}).json()
+    assert r["ui_action"]["listing_id"] == "l_apple_outlet" and "blocked" in r["say"]
+    assert purchases() == 0
+    assert client.post(f"/api/audit/{rid}/verify").json()["intact"] is True
