@@ -1,7 +1,7 @@
 """Tool layer. Plain code turns raw store facts into structured signals.
 
-Seller-controlled text (titles, policy text) is returned only as quoted data
-under `untrusted_text`; it never feeds a signal or a score.
+Seller-controlled text (titles, policy text, provider passages) is returned only
+under `untrusted_text`. Optional providers may emit fixed penalty labels.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import unicodedata
 from datetime import date
 from urllib.parse import urlparse
 
-from . import db
+from . import db, extras
 from .scoring import score_store
 
 NEW_DOMAIN_DAYS = 90
@@ -104,7 +104,7 @@ def safe_name(s: str) -> str:
     return " ".join(clean.split())[:40].strip() or "Unnamed store"
 
 
-def scan_store(store_id: str, listing: dict | None = None) -> dict:
+def scan_store(store_id: str, listing: dict | None = None, network: bool = True) -> dict:
     """Collect signals for one store and score it. Returns structured data only."""
     with db.connect() as conn:
         stores = _rows(conn, "SELECT * FROM stores WHERE id = ?", (store_id,))
@@ -116,6 +116,8 @@ def scan_store(store_id: str, listing: dict | None = None) -> dict:
         facts = json.loads(facts_rows[0]["params"]) if facts_rows else {}
         extra = _rows(conn, "SELECT `signal`, params, source, evidence_url FROM store_signals WHERE store_id = ? AND `signal` <> 'facts'", (store_id,))
         linked = [{**l, "name": safe_name(l["name"])} for l in find_linked_flagged(conn, store)]
+        flagged = [{**s, "name": safe_name(s["name"])} for s in
+                   _rows(conn, "SELECT id, name FROM stores WHERE flagged = 1")]
         ref = None
         if listing:
             refs = _rows(conn, "SELECT * FROM reference_prices WHERE product = ?", (listing["product"],))
@@ -160,12 +162,17 @@ def scan_store(store_id: str, listing: dict | None = None) -> dict:
         signals.append({"signal": e["signal"], "params": json.loads(e["params"] or "{}"),
                         "source": e["source"] or "", "evidence_url": e["evidence_url"] or ""})
 
+    extra_signals, sources, untrusted, extra_audit = extras.run(store, flagged, network)
+    signals.extend(extra_signals)
     result = score_store(store_id, signals).to_dict()
+    result["sources"] = {"sql": "live", **sources}
+    result["extras_audit"] = extra_audit
     result["store"] = {"id": store["id"], "name": safe_name(store["name"]), "domain": store.get("domain")}
     result["linked_stores"] = linked
     result["untrusted_text"] = {  # quoted data for the LLM to describe, never to obey
         "listing_title": (listing or {}).get("title", ""),
         "policy_text": pol.get("policy_text") or "",
+        **untrusted,
     }
     return result
 

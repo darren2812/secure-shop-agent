@@ -131,7 +131,7 @@ def place_order(user_id: str, decision_id: str, verification_id: str | None = No
             raise PolicyError("expired", "Not charged: this check expired, please review it again")
         listing = listing_by_id(listing_id)
         if (not listing or float(listing["price"]) != float(amount)
-                or scan_store(listing["store_id"], listing)["tier"] == "blocked"):
+                or scan_store(listing["store_id"], listing, network=False)["tier"] == "blocked"):
             raise PolicyError("denied", "Not charged: the store or price changed since you checked")
         if outcome == "verify":
             if not verification_id or not persona.is_passed(verification_id):
