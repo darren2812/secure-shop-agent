@@ -6,6 +6,7 @@ import { useOrbStore } from "../orb/store";
 import { AuditPanel } from "../shop/AuditPanel";
 import { BuyDialog } from "../shop/BuyDialog";
 import { Results } from "../shop/Results";
+import { useVoice } from "../voice/useVoice";
 
 export function Home() {
   const [text, setText] = useState("");
@@ -18,7 +19,7 @@ export function Home() {
   const { setAgentState, setTier, setLabel } = useOrbStore.getState();
 
   /** Text, pasted link or (later) voice transcript. The tier comes only from the API response. */
-  const ask = async (value: string) => {
+  const ask = async (value: string): Promise<string> => {
     setError("");
     setShowAudit(false);
     setTier(null);
@@ -29,19 +30,22 @@ export function Home() {
       setTurn(r);
       setTier(r.tier);
       setLabel(r.say);
+      return r.say;
     } catch (e) {
       setError((e as Error).message);
       setLabel("");
+      throw e;
     } finally {
-      setAgentState("idle");
+      if (useOrbStore.getState().agentState === "scanning") setAgentState(voice.mode === "live" ? "listening" : "idle");
     }
   };
+  const voice = useVoice(ask);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const value = link.trim() || text.trim();
     if (!value) return;
-    void ask(value);
+    void ask(value).catch(() => undefined);
     setText("");
     setLink("");
   };
@@ -61,8 +65,8 @@ export function Home() {
     setAgentState("idle");
   };
 
-  // Tap orb = push-to-talk toggle (voice wiring comes next).
-  const toggleTalk = () => setAgentState(agentState === "listening" ? "idle" : "listening");
+  // Tap orb = start / stop voice (GPT-Live, falls back to browser speech).
+  const toggleTalk = () => (voice.mode === "off" || voice.mode === "error" ? void voice.start() : voice.stop());
   const size = typeof window !== "undefined" ? Math.max(280, Math.min(360, window.innerWidth - 48)) : 320;
 
   return (
@@ -82,7 +86,7 @@ export function Home() {
         <button type="submit" disabled={agentState === "scanning"}>Check</button>
       </form>
 
-      {error ? <p className="home__err" role="alert">{error}</p> : null}
+      {error || voice.error ? <p className="home__err" role="alert">{error || voice.error}</p> : null}
 
       {turn ? (
         <>
