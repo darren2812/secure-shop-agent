@@ -5,8 +5,11 @@ relays the code-built `say` back with session.commentary.append.
 """
 from __future__ import annotations
 
+import logging
 import os
 import time
+
+log = logging.getLogger("uvicorn.error")
 
 INSTRUCTIONS = """You are Warden, a calm voice for a shopping safety agent. Speak briefly, no exclamations,
 no sales language. Never say a store is safe, verified or trusted unless the backend result says so.
@@ -69,5 +72,6 @@ def create_session(sdp: str) -> dict:
     try:
         result = client.live.create(session=session, transport={"type": "webrtc", "sdp": sdp})
     except APIError as e:
+        log.warning("GPT-Live session failed: %s %s", getattr(e, "status_code", None), str(e)[:400])
         raise VoiceError(getattr(e, "status_code", None) or 502, "Voice session creation failed") from e
     return result.model_dump(mode="json")
