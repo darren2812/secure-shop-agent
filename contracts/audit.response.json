@@ -1,0 +1,213 @@
+{
+  "request_id": "req_870ea90d97f3",
+  "events": [
+    {
+      "actor": "user",
+      "payload": {
+        "text": "AirPods Pro under $250"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 1,
+      "step": "user_request",
+      "ts": "2026-11-20T19:12:17.250777+00:00",
+      "prev_hash": "GENESIS",
+      "hash": "ce6ac80a9d4bd20603e20cc0007c951add5c61445a4797c784a05a6221b3e5cb"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "count": 6,
+        "query": "AirPods Pro under $250"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 2,
+      "step": "search_listings",
+      "ts": "2026-11-20T19:12:17.251505+00:00",
+      "prev_hash": "ce6ac80a9d4bd20603e20cc0007c951add5c61445a4797c784a05a6221b3e5cb",
+      "hash": "c95fee5b88092667b551c27451fa9973031f2ed9dea17d2c1dbc632924b74fbf"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [],
+        "listing_id": "l_bestbuy",
+        "reasons": [],
+        "score": 100,
+        "store_id": "bestbuy",
+        "tier": "trusted"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 3,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.252171+00:00",
+      "prev_hash": "c95fee5b88092667b551c27451fa9973031f2ed9dea17d2c1dbc632924b74fbf",
+      "hash": "8d4de9bb0c72bd2034840cc7853e3fa9adac5d3922ff51280de40333f0ddfa23"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [],
+        "listing_id": "l_amz",
+        "reasons": [
+          "new_marketplace_seller"
+        ],
+        "score": 70,
+        "store_id": "amz_techdeals",
+        "tier": "caution"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 4,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.252809+00:00",
+      "prev_hash": "8d4de9bb0c72bd2034840cc7853e3fa9adac5d3922ff51280de40333f0ddfa23",
+      "hash": "853efdd6c0df455254e14934af406689e7a2abff48f0cd13a3e2d70ed18dcc7b"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [],
+        "listing_id": "l_apple_outlet",
+        "reasons": [
+          "brand_impersonation",
+          "new_domain",
+          "irreversible_payments_only",
+          "price_too_low",
+          "no_returns_or_contact",
+          "fake_discount"
+        ],
+        "score": 0,
+        "store_id": "apple_outlet",
+        "tier": "blocked"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 5,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.253526+00:00",
+      "prev_hash": "853efdd6c0df455254e14934af406689e7a2abff48f0cd13a3e2d70ed18dcc7b",
+      "hash": "1a0a94be48a337940b92a9c411e6f1ba44c1cd9bc677daeb7695f885f61749aa"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [
+          {
+            "attribute": "address",
+            "id": "gadgetflash",
+            "name": "GadgetFlash"
+          }
+        ],
+        "listing_id": "l_audiohub",
+        "reasons": [
+          "linked_to_reported"
+        ],
+        "score": 0,
+        "store_id": "audiohub",
+        "tier": "blocked"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 6,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.254287+00:00",
+      "prev_hash": "1a0a94be48a337940b92a9c411e6f1ba44c1cd9bc677daeb7695f885f61749aa",
+      "hash": "bdc6f941c40c6430a75447eafc160ffd980987893a481ee5a7d66fd3513241ae"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [],
+        "listing_id": "l_bb_clearance",
+        "reasons": [
+          "brand_impersonation",
+          "new_domain",
+          "price_too_low",
+          "no_returns_or_contact"
+        ],
+        "score": 0,
+        "store_id": "bb_clearance",
+        "tier": "blocked"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 7,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.255101+00:00",
+      "prev_hash": "bdc6f941c40c6430a75447eafc160ffd980987893a481ee5a7d66fd3513241ae",
+      "hash": "b561a6991934c0052f2d13636d58a043a0e253131bd4870afe54341af262468b"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "linked_stores": [],
+        "listing_id": "l_soundshack",
+        "reasons": [
+          "no_returns_or_contact"
+        ],
+        "score": 85,
+        "store_id": "soundshack",
+        "tier": "trusted"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 8,
+      "step": "scan_store",
+      "ts": "2026-11-20T19:12:17.255781+00:00",
+      "prev_hash": "b561a6991934c0052f2d13636d58a043a0e253131bd4870afe54341af262468b",
+      "hash": "e6b0f50643a9e0c7d648a57bd98e9cc645c7ab3e572a605e40d360c382eee3bc"
+    },
+    {
+      "actor": "agent",
+      "payload": {
+        "explanation": "",
+        "say": "6 offers: 2 trusted, 1 caution, 3 blocked. Best Buy, $249: signals verified. Blocked: Apple Store Outlet, imitates apple on a non-official domain. Your call."
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 9,
+      "step": "agent_reply",
+      "ts": "2026-11-20T19:12:17.256187+00:00",
+      "prev_hash": "e6b0f50643a9e0c7d648a57bd98e9cc645c7ab3e572a605e40d360c382eee3bc",
+      "hash": "98256441c081d38b52b848c168e285cff3248536ca58ff9e135b25f6b3e819e5"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "amount": 249.0,
+        "decision_id": "dec_694e2417ede74051",
+        "listing_id": "l_bestbuy",
+        "outcome": "verify",
+        "reasons": [
+          "Over your $200 per-purchase limit"
+        ],
+        "score": 100,
+        "score_reasons": [],
+        "store": {
+          "domain": "bestbuy.com",
+          "id": "bestbuy",
+          "name": "Best Buy"
+        },
+        "tier": "trusted"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 10,
+      "step": "check_policy",
+      "ts": "2026-11-20T19:12:17.258726+00:00",
+      "prev_hash": "98256441c081d38b52b848c168e285cff3248536ca58ff9e135b25f6b3e819e5",
+      "hash": "b5e3f27a19bda071ef2b102d597a46e456c2fe9d83e3b4082bbe01e2c1557e43"
+    },
+    {
+      "actor": "code",
+      "payload": {
+        "amount": 249.0,
+        "decision_id": "dec_694e2417ede74051",
+        "listing_id": "l_bestbuy",
+        "purchase_id": "pur_154f2af3d0854209",
+        "simulated": true,
+        "status": "placed",
+        "verification_id": "inq_demo"
+      },
+      "request_id": "req_870ea90d97f3",
+      "seq": 11,
+      "step": "place_order",
+      "ts": "2026-11-20T19:12:17.262805+00:00",
+      "prev_hash": "b5e3f27a19bda071ef2b102d597a46e456c2fe9d83e3b4082bbe01e2c1557e43",
+      "hash": "40e534a9ad051d766196a01fe81945266a908ff79b1cb023d3a3fc98fa4a4491"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "detail": {
+    "code": "verification_required",
+    "message": "Not charged: identity verification required",
+    "charged": false
+  }
+}

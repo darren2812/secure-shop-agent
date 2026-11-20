@@ -1,0 +1,9 @@
+{
+  "purchase_id": "pur_154f2af3d0854209",
+  "decision_id": "dec_694e2417ede74051",
+  "listing_id": "l_bestbuy",
+  "amount": 249.0,
+  "status": "placed",
+  "simulated": true,
+  "verification_id": "inq_demo"
+}

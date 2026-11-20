@@ -1,0 +1,17 @@
+{
+  "decision_id": "dec_694e2417ede74051",
+  "outcome": "verify",
+  "reasons": [
+    "Over your $200 per-purchase limit"
+  ],
+  "listing_id": "l_bestbuy",
+  "store": {
+    "id": "bestbuy",
+    "name": "Best Buy",
+    "domain": "bestbuy.com"
+  },
+  "tier": "trusted",
+  "score": 100,
+  "score_reasons": [],
+  "amount": 249.0
+}
