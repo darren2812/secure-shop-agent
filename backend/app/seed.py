@@ -7,6 +7,7 @@ AudioHub Blocked (linked to reported store) · fake Best Buy Blocked · SoundSha
 from __future__ import annotations
 
 import json
+import threading
 from datetime import date, timedelta
 
 from . import db
@@ -85,7 +86,16 @@ REFERENCE_PRICES = [
 ]
 
 
+# Two quick taps on "reset demo" used to run two resets at once and collide on primary keys.
+_reset_lock = threading.Lock()
+
+
 def reset_and_seed() -> None:
+    with _reset_lock:
+        _reset_and_seed()
+
+
+def _reset_and_seed() -> None:
     db.init_db()
     with db.connect() as conn:
         for t in ("audit_events", "decisions", "purchases", "ledger", "listings", "store_policies",

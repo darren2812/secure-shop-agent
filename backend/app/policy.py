@@ -4,6 +4,7 @@ The LLM has no access to these functions. Identity comes from the server session
 """
 from __future__ import annotations
 
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -109,7 +110,29 @@ def verify_identity(user_id: str, inquiry_id: str) -> dict:
 def get_profile(user_id: str) -> dict:
     with db.connect() as conn:
         u = _user(conn, user_id)
-    return {"verified": u["verified"], "per_purchase_limit": u["limit"], "monthly_cap": u["cap"]}
+        row = conn.execute("SELECT spent FROM ledger WHERE user_id = ? AND month = ?", (user_id, _month())).fetchone()
+    return {"verified": u["verified"], "per_purchase_limit": u["limit"], "monthly_cap": u["cap"],
+            "allow_marketplace": u["allow_marketplace"], "spent_this_month": float(row[0]) if row else 0.0}
+
+
+def set_limits(user_id: str, per_purchase_limit: float, monthly_cap: float, allow_marketplace: bool) -> dict:
+    """Only the person, from the Limits sheet, changes limits. Not an agent tool: the AI can't raise your limit."""
+    if not (math.isfinite(per_purchase_limit) and 1 <= per_purchase_limit <= 5000):
+        raise PolicyError("invalid_limits", "Per purchase must be between $1 and $5,000")
+    if not (math.isfinite(monthly_cap) and 1 <= monthly_cap <= 20000):
+        raise PolicyError("invalid_limits", "Monthly cap must be between $1 and $20,000")
+    if monthly_cap < per_purchase_limit:
+        raise PolicyError("invalid_limits", "Your monthly cap can't be lower than your per-purchase limit")
+    with db.connect() as conn:
+        before = _user(conn, user_id)
+        conn.execute("UPDATE users SET per_purchase_limit = ?, monthly_cap = ?, allow_marketplace = ? WHERE id = ?",
+                     (per_purchase_limit, monthly_cap, 1 if allow_marketplace else 0, user_id))
+    write_audit_event(f"user_{user_id}", "limits_changed", "user", {
+        "per_purchase_limit": {"from": before["limit"], "to": float(per_purchase_limit)},
+        "monthly_cap": {"from": before["cap"], "to": float(monthly_cap)},
+        "allow_marketplace": {"from": before["allow_marketplace"], "to": bool(allow_marketplace)},
+    })
+    return get_profile(user_id)
 
 
 def place_order(user_id: str, decision_id: str, verification_id: str | None = None) -> dict:

@@ -7,6 +7,7 @@ import { AuditPanel } from "../shop/AuditPanel";
 import { BuyDialog } from "../shop/BuyDialog";
 import { PurchaseSheet } from "../shop/PurchaseSheet";
 import { ResultsPopup } from "../shop/ResultsPopup";
+import { LimitsSheet } from "../settings/LimitsSheet";
 import { TrustPanel } from "../trust/TrustPanel";
 import { useVoice } from "../voice/useVoice";
 
@@ -20,6 +21,7 @@ export function Home() {
   /** Results pop-up over the home orb; the "View results" chip reopens it. */
   const [popup, setPopup] = useState(false);
   const [error, setError] = useState("");
+  const [limits, setLimits] = useState(false);
   const [verified, setVerified] = useState<boolean | null>(null);
   useEffect(() => {
     api.me().then((m) => setVerified(m.verified)).catch(() => setVerified(null));
@@ -103,8 +105,19 @@ export function Home() {
     setTimeout(() => document.getElementById("ask")?.focus(), 0);
   };
 
+  const [resetting, setResetting] = useState(false);
   const reset = async () => {
-    await api.reset();
+    if (resetting) return;
+    setResetting(true);
+    setError("");
+    try {
+      await api.reset();
+    } catch (e) {
+      setError(`Reset failed: ${(e as Error).message}`);
+      setResetting(false);
+      return;
+    }
+    setResetting(false);
     turnRef.current = null;
     setSheet(null);
     setPopup(false);
@@ -112,7 +125,7 @@ export function Home() {
     setShowAudit(false);
     setVerified(false);
     setTier(null);
-    setLabel("");
+    setLabel("Demo reset. Fresh start.");
     setAgentState("idle");
   };
 
@@ -125,6 +138,12 @@ export function Home() {
       <section className="home__stage stage oscuro grano" aria-labelledby="home-title">
         <div className="stage__bar">
           <p className="wordmark">Warden</p>
+          <button type="button" className="limitsbtn" onClick={() => setLimits(true)}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+              <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" /><path d="M4 7.5V17a2 2 0 0 0 2 2h12.5a1.5 1.5 0 0 0 1.5-1.5v-7A1.5 1.5 0 0 0 18.5 9H6.5A2.5 2.5 0 0 1 4 7.5Z" /><circle cx="16" cy="13.5" r="1" fill="currentColor" />
+            </svg>
+            Limits
+          </button>
           {verified !== null ? (
             <span className={`idpill ${verified ? "idpill--ok" : ""}`}>
               {verified ? <><span aria-hidden="true">✓ </span>Verified</> : "Not verified yet"}
@@ -184,7 +203,7 @@ export function Home() {
         ) : null}
 
         <footer className="home__foot">
-          <a href="#/attack">attack demo</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
+          <a href="#/attack">attack demo</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset} disabled={resetting}>{resetting ? "resetting…" : "reset demo"}</button>
         </footer>
       </div>
 
@@ -203,6 +222,8 @@ export function Home() {
       ) : null}
 
       {buying && turn ? <BuyDialog result={buying} requestId={turn.request_id} onClose={closeBuy} /> : null}
+
+      {limits ? <LimitsSheet onClose={() => setLimits(false)} /> : null}
 
       <TrustPanel requestId={turn?.request_id ?? null} />
     </main>

@@ -18,7 +18,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 from . import attacks, audit, db, extras, persona, voice  # noqa: E402
 from .agent import run_turn  # noqa: E402
 from .chat import chat_reply, chat_status  # noqa: E402
-from .policy import PolicyError, check_policy, get_profile, place_order, verify_identity  # noqa: E402
+from .policy import PolicyError, check_policy, get_profile, place_order, set_limits, verify_identity  # noqa: E402
 from .seed import reset_and_seed  # noqa: E402
 
 @asynccontextmanager
@@ -39,7 +39,7 @@ def allowed_origins() -> list[str]:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins(),
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "X-Demo-Token"],
 )
 
@@ -110,6 +110,13 @@ class VerifyIn(BaseModel):
     inquiry_id: str = Field(min_length=1, max_length=128)
 
 
+class LimitsIn(BaseModel):
+    # Ranges are checked in set_limits so every bad value comes back as a plain 400 {code, message}.
+    per_purchase_limit: float
+    monthly_cap: float
+    allow_marketplace: bool
+
+
 @app.get("/api/me")
 def me():
     return get_profile(current_user())
@@ -122,6 +129,15 @@ def me_verify(body: VerifyIn):
         return verify_identity(current_user(), body.inquiry_id)
     except PolicyError as e:
         raise HTTPException(400, {"code": e.code, "message": e.message, "charged": False})
+
+
+@app.put("/api/me/limits", dependencies=[Depends(demo_only)])
+def me_limits(body: LimitsIn):
+    """Spending limits, set by the person in the UI. Deliberately not an agent tool."""
+    try:
+        return set_limits(current_user(), body.per_purchase_limit, body.monthly_cap, body.allow_marketplace)
+    except PolicyError as e:
+        raise HTTPException(400, {"code": e.code, "message": e.message})
 
 
 @app.get("/api/trust")
@@ -149,6 +165,8 @@ def trust():
         "controls": [
             {"name": "Code decides, AI explains", "how": "Scores, tiers, limits and orders are plain code; the AI has no purchase tool"},
             {"name": "Spotlighted seller text", "how": "Seller text is wrapped in a random per-request marker and datamarked, so the AI treats it as data"},
+            {"name": "AI can't raise your limit", "how": "Only you can change your limits, in the app"},
+            {"name": "Card data never stored", "how": "Payments are tokenized by the processor; Warden never sees or stores card numbers (PCI DSS SAQ A model)"},
             {"name": "Voice can't buy", "how": "Only a tap on Buy + Confirm can place an order"},
             {"name": "Identity verified once", "how": "Persona ID + selfie; the server checks the result, never the browser"},
             {"name": "Single-use decisions", "how": "Each purchase decision can be used once, even with parallel requests"},

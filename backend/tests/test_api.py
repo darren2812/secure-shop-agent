@@ -208,3 +208,55 @@ def test_chat_policy_check_is_local_only():
     r = lan.post("/chat", json={"message": "/policy-check l_bestbuy", "session": "fd_x"})
     assert r.status_code == 403 and purchases() == 0
     assert lan.post("/chat", json={"message": "AirPods Pro", "session": "fd_y"}).status_code == 200
+
+
+def put_limits(per=500, cap=2000, mp=False):
+    return client.put("/api/me/limits", json={"per_purchase_limit": per, "monthly_cap": cap, "allow_marketplace": mp})
+
+
+def test_limits_roundtrip_and_audit():
+    before = client.get("/api/me").json()
+    assert before["spent_this_month"] == 0 and "allow_marketplace" in before
+    r = put_limits(per=300, cap=1200, mp=True)
+    assert r.status_code == 200
+    me = client.get("/api/me").json()
+    assert (me["per_purchase_limit"], me["monthly_cap"], me["allow_marketplace"]) == (300, 1200, True)
+    trail = client.get("/api/audit/user_u_demo").json()["events"]
+    assert trail[-1]["step"] == "limits_changed" and trail[-1]["actor"] == "user"
+    assert client.post("/api/audit/user_u_demo/verify").json()["intact"] is True
+
+
+def test_limits_validation_returns_400_with_code():
+    for per, cap in ((0, 100), (5001, 20000), (100, 0), (100, 20001), (500, 400)):
+        r = put_limits(per, cap)
+        assert r.status_code == 400, (per, cap)
+        d = r.json()["detail"]
+        assert d["code"] == "invalid_limits" and d["message"]
+    assert client.put("/api/me/limits", json={"per_purchase_limit": "x", "monthly_cap": 1, "allow_marketplace": True}).status_code == 422
+
+
+def test_limits_are_demo_only_and_not_an_agent_tool():
+    other = TestClient(app, client=("203.0.113.9", 50000))
+    r = other.put("/api/me/limits", json={"per_purchase_limit": 1, "monthly_cap": 1, "allow_marketplace": False})
+    assert r.status_code == 403
+    from app import agent, tools
+    for mod in (agent, tools):
+        assert "set_limits" not in open(mod.__file__).read()
+
+
+def test_cap_enforced_after_lowering_it():
+    turn("AirPods Pro", "rq_cap")
+    client.post("/api/persona/stub-pass/inq_cap")
+    client.post("/api/me/verify", json={"inquiry_id": "inq_cap"})
+    d = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq_cap"}).json()
+    assert d["outcome"] == "allow"
+    price = d["amount"]
+    assert put_limits(per=1, cap=1).status_code == 200  # lowered after the decision was made
+    no = client.post("/api/orders", json={"decision_id": d["decision_id"]})
+    assert no.status_code == 400 and no.json()["detail"]["charged"] is False and purchases() == 0
+    d2 = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq_cap"}).json()
+    assert d2["outcome"] == "deny"
+    assert put_limits(per=price, cap=price).status_code == 200
+    d3 = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq_cap"}).json()
+    assert client.post("/api/orders", json={"decision_id": d3["decision_id"]}).status_code == 200
+    assert client.get("/api/me").json()["spent_this_month"] == price
