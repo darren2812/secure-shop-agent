@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import re
 from collections import defaultdict
@@ -9,6 +10,7 @@ from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 NS = uuid5(NAMESPACE_URL, "shop-agent/store-graph/v1")
+log = logging.getLogger("uvicorn.error")
 
 
 def normalize(kind: str, value: str) -> str:
@@ -115,6 +117,7 @@ class CogneeProvider:
                           conn.execute("SELECT id, name FROM stores").fetchall()}
         self.attrs_by_store, self.stores_by_attr = attrs, stores
         self.status = "live"
+        log.info("Cognee graph live: %d stores, %d attributes", len(attrs), len(stores))
 
     def reset(self):
         pass  # Embedded graph is static; reports are read live by scan_store.
@@ -130,6 +133,8 @@ class CogneeProvider:
             return ExtraResult([], "live", {}, {})
         signal = {"signal": "linked_two_hops", "source": "Cognee graph",
                   "params": {"via": self.names[path["via"]], "other": flagged_names[path["other"]]}}
+        log.info("Cognee: %s linked to reported %s via %s (two hops)",
+                 self.names.get(store["id"], store["id"]), flagged_names[path["other"]], self.names[path["via"]])
         first, second = path["attributes"]
         audit = {"path": [path["store_id"], first[0], path["via"], second[0], path["other"]]}
         return ExtraResult([signal], "live", {}, audit)
