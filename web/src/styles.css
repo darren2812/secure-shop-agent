@@ -151,3 +151,4 @@ a { color: var(--neutral); }
 .attack__quote { margin: 8px 0; padding: 8px 12px; border-left: 3px solid var(--caution); background: var(--bg); font-size: 13px; word-break: break-word; }
 .attack__quote span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
 .attack__delta { font-weight: 700; }
+.home__why { margin: 16px 0 0; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); color: var(--muted); font-size: 14px; line-height: 1.45; }

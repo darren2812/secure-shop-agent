@@ -90,6 +90,7 @@ export function Home() {
 
       {turn ? (
         <>
+          {turn.explanation ? <p className="home__why">{turn.explanation}</p> : null}
           <Results results={turn.results} onBuy={setBuying} />
           <button type="button" className="link home__receipt" onClick={() => setShowAudit((v) => !v)}>
             {showAudit ? "Hide receipt" : "View receipt"}
