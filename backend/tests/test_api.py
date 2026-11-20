@@ -260,3 +260,39 @@ def test_cap_enforced_after_lowering_it():
     d3 = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq_cap"}).json()
     assert client.post("/api/orders", json={"decision_id": d3["decision_id"]}).status_code == 200
     assert client.get("/api/me").json()["spent_this_month"] == price
+
+
+def test_red_flags_lists_bad_stores_with_reasons():
+    r = client.get("/api/red-flags")
+    assert r.status_code == 200
+    stores = r.json()["stores"]
+    by_id = {s["store_id"]: s for s in stores}
+    assert {"apple_outlet", "audiohub", "bb_clearance", "amz_techdeals"} <= set(by_id)
+    # Every store is listed with its score; good stores come last as trusted.
+    assert all(by_id[i]["tier"] == "trusted" for i in ("bestbuy", "soundshack", "northpeak"))
+    assert by_id["amz_techdeals"]["tier"] == "caution"
+    assert all(by_id[i]["tier"] == "blocked" for i in ("apple_outlet", "audiohub", "bb_clearance"))
+    # blocked, then caution, then trusted; lowest score first within a tier
+    rank = {"blocked": 0, "caution": 1, "trusted": 2}
+    order = [(rank[s["tier"]], s["score"]) for s in stores]
+    assert order == sorted(order)
+    codes = {c["code"] for s in stores for c in s["reasons"]}
+    assert "price_too_low" in codes
+    outlet = by_id["apple_outlet"]
+    assert outlet["price"] == 119.0 and outlet["typical_price"] == 249.0 and outlet["pct_below"] == 52
+    assert by_id["bb_clearance"]["price"] == 139.0
+    assert all(s["reasons"] and s["name"] and s["domain"] for s in stores if s["tier"] != "trusted")
+    assert all(isinstance(s["score"], int) for s in stores)
+
+
+def test_red_flags_tiers_match_scan_store_and_do_not_write():
+    from app.tools import listing_by_id, scan_store
+
+    before = client.get("/api/red-flags").json()["stores"]
+    for s in before:
+        with db.connect() as conn:
+            row = conn.execute("SELECT id FROM listings WHERE store_id = ?", (s["store_id"],)).fetchone()
+        l = listing_by_id(row[0]) if row else None
+        assert scan_store(s["store_id"], l, network=False)["tier"] == s["tier"]
+    assert client.get("/api/red-flags").json()["stores"] == before  # read-only: same answer twice
+    assert purchases() == 0

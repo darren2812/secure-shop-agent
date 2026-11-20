@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from . import attacks, audit, db, extras, persona, voice  # noqa: E402
+from .redflags import red_flags  # noqa: E402
 from .agent import run_turn  # noqa: E402
 from .chat import chat_reply, chat_status  # noqa: E402
 from .policy import PolicyError, check_policy, get_profile, place_order, set_limits, verify_identity  # noqa: E402
@@ -138,6 +139,12 @@ def me_limits(body: LimitsIn):
         return set_limits(current_user(), body.per_purchase_limit, body.monthly_cap, body.allow_marketplace)
     except PolicyError as e:
         raise HTTPException(400, {"code": e.code, "message": e.message})
+
+
+@app.get("/api/red-flags")
+def red_flags_list():
+    """Stores Warden would block or warn about, with why. Read-only, code-computed, no LLM."""
+    return red_flags()
 
 
 @app.get("/api/trust")

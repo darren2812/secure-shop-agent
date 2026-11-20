@@ -78,6 +78,18 @@ export interface Profile {
   spent_this_month: number;
 }
 
+export interface RedFlagStore {
+  store_id: string;
+  name: string;
+  domain: string;
+  tier: "blocked" | "caution" | "trusted";
+  score: number;
+  price: number | null;
+  typical_price?: number;
+  pct_below?: number;
+  reasons: { code: string; text: string }[];
+}
+
 export class ApiError extends Error {
   constructor(public code: string, message: string, public charged = false) {
     super(message);
@@ -120,5 +132,6 @@ export const api = {
   setLimits: (l: { per_purchase_limit: number; monthly_cap: number; allow_marketplace: boolean }) =>
     call<Profile>("PUT", "/api/me/limits", l),
   verifyMe: (inquiry_id: string) => call<{ verified: boolean }>("POST", "/api/me/verify", { inquiry_id }),
+  redFlags: () => call<{ stores: RedFlagStore[] }>("GET", "/api/red-flags"),
   reset: () => call<unknown>("POST", "/api/reset_demo"),
 };

@@ -646,3 +646,35 @@ h1, h2, h3 { font-weight: 400; }
 .ltoggle input:checked ~ .ltoggle__track .ltoggle__knob { transform: translateX(26px); }
 .lsheet__err { margin: 0 0 6px; font-size: 1.0625rem; }
 @media (prefers-reduced-motion: reduce) { .ltoggle__track, .ltoggle__knob, .limitsbtn { transition: none; } }
+
+/* ---------- Red flags pill + sheet ---------- */
+.flagsbtn { color: var(--blocked-text); border-color: rgb(239 68 68 / 0.55); }
+.flagsbtn:hover { background: rgb(239 68 68 / 0.12); border-color: var(--blocked-text); }
+@media (max-width: 420px) {  /* phone: icon only so Limits + the ID pill still fit beside the wordmark */
+  .flagsbtn { padding: 0; width: 44px; justify-content: center; }
+  .flagsbtn__long { display: none; }
+}
+.rfsheet__body { padding-bottom: 8px; }
+.rfsheet__list, .rfcard__reasons { list-style: none; margin: 0; padding: 0; }
+.rfsheet__list { display: grid; gap: 14px; }
+.rfsheet__state { margin: 0; padding: 28px 8px; text-align: center; color: var(--muted); font-size: 1.125rem; display: grid; gap: 16px; justify-items: center; }
+.rfcard { position: relative; padding: 16px 18px 16px 22px; border-radius: 16px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+.rfcard::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; }
+.rfcard--blocked::before { background: var(--blocked); }
+.rfcard--caution::before { background: var(--caution); }
+.rfcard--trusted::before { background: var(--trusted); }
+.rfcard--trusted .rfcard__price { color: inherit; }
+.rfsheet__section { margin: 18px 2px 10px; font-size: 1rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.rfsheet__section:first-child { margin-top: 4px; }
+.rfcard__top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rfcard__score { color: var(--muted); font-size: 1rem; font-variant-numeric: tabular-nums; }
+.rfcard__score b { color: var(--fg, #fff); font-size: 1.75rem; font-weight: 600; margin-right: 1px; }
+.rfcard--blocked .rfcard__score b { color: var(--blocked); }
+.rfcard--caution .rfcard__score b { color: var(--caution); }
+.rfcard--trusted .rfcard__score b { color: var(--trusted); }
+.rfcard__name { margin: 10px 0 0; font-size: 1.3125rem; font-weight: 480; line-height: 1.25; overflow-wrap: anywhere; }
+.rfcard__domain { margin: 2px 0 0; color: var(--muted); font-size: 1rem; overflow-wrap: anywhere; }
+.rfcard__price { margin: 10px 0 0; font-size: 1.1875rem; font-weight: 520; font-variant-numeric: tabular-nums; color: var(--caution); }
+.rfcard__reasons { margin-top: 10px; display: grid; gap: 6px; }
+.rfcard__reasons li { position: relative; padding-left: 20px; font-size: 1.0625rem; line-height: 1.4; overflow-wrap: anywhere; }
+.rfcard__reasons li::before { content: ""; position: absolute; left: 4px; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
