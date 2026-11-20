@@ -89,6 +89,41 @@ def me_verify(body: VerifyIn):
         raise HTTPException(400, {"code": e.code, "message": e.message, "charged": False})
 
 
+@app.get("/api/trust")
+def trust():
+    """What data goes where, and which protections are active. Shown in the Security & receipts panel."""
+    return {
+        "identity": {"verified": get_profile(current_user())["verified"]},
+        "data_flows": [
+            {"service": "Claude (Anthropic)", "purpose": "Chooses which stores to scan and explains results",
+             "data_sent": "Your product request, store signals, seller text marked as untrusted",
+             "data_not_sent": "Your identity, card, limits, purchase decisions"},
+            {"service": "GPT-Live (OpenAI)", "purpose": "Voice conversation",
+             "data_sent": "Your voice, and the verdict sentence our code writes",
+             "data_not_sent": "Seller text, your identity, card, limits"},
+            {"service": "Persona", "purpose": "Verify your identity once (ID + selfie)",
+             "data_sent": "Your ID photo and selfie, sent directly to Persona",
+             "data_not_sent": "Your shopping requests and purchases"},
+            {"service": "SingleStore", "purpose": "Store data, fraud-ring query, hash-chained receipts",
+             "data_sent": "Stores, listings, decisions, purchases, audit events",
+             "data_not_sent": "Card numbers (checkout is simulated)"},
+            {"service": "Firedrill", "purpose": "Attack drills against the agent",
+             "data_sent": "Test requests to our agent endpoint only",
+             "data_not_sent": "Real user data"},
+        ],
+        "controls": [
+            {"name": "Code decides, AI explains", "how": "Scores, tiers, limits and orders are plain code; the AI has no purchase tool"},
+            {"name": "Spotlighted seller text", "how": "Seller text is wrapped in a random per-request marker and datamarked, so the AI treats it as data"},
+            {"name": "Voice can't buy", "how": "Only a tap on Buy + Confirm can place an order"},
+            {"name": "Identity verified once", "how": "Persona ID + selfie; the server checks the result, never the browser"},
+            {"name": "Single-use decisions", "how": "Each purchase decision can be used once, even with parallel requests"},
+            {"name": "Tamper-evident receipts", "how": "Each event is chained to the previous one" + (" with a server-only HMAC key" if os.environ.get("AUDIT_HMAC_KEY") else "")},
+            {"name": "Protected voice endpoint", "how": "Origin allowlist, demo token, rate limit; API keys never reach the browser"},
+            {"name": "Encryption in transit", "how": "HTTPS/TLS when deployed; keys stay server-side"},
+        ],
+    }
+
+
 @app.post("/api/turn")
 def turn(body: TurnIn):
     """Text, pasted link or voice transcript. Never buys anything."""

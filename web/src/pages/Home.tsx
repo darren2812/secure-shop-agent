@@ -6,6 +6,7 @@ import { useOrbStore } from "../orb/store";
 import { AuditPanel } from "../shop/AuditPanel";
 import { BuyDialog } from "../shop/BuyDialog";
 import { Results } from "../shop/Results";
+import { TrustPanel } from "../trust/TrustPanel";
 import { useVoice } from "../voice/useVoice";
 
 export function Home() {
@@ -123,6 +124,8 @@ export function Home() {
       ) : null}
 
       {buying && turn ? <BuyDialog result={buying} requestId={turn.request_id} onClose={closeBuy} /> : null}
+
+      <TrustPanel requestId={turn?.request_id ?? null} />
 
       <footer className="home__foot">
         <a href="#/attack">attack</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>

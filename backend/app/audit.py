@@ -7,7 +7,9 @@ can't normalize JSON or timestamps and break verification.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
 import threading
 from datetime import datetime, timezone
 
@@ -24,7 +26,13 @@ def canonical(obj: dict) -> str:
 
 
 def compute_hash(prev_hash: str, canonical_text: str) -> str:
-    return hashlib.sha256(f"{prev_hash}|{canonical_text}".encode("utf-8")).hexdigest()
+    """HMAC-SHA256 with a server-only key when AUDIT_HMAC_KEY is set (someone with DB access can't
+    re-forge the chain); plain SHA-256 otherwise so the demo runs without config."""
+    msg = f"{prev_hash}|{canonical_text}".encode("utf-8")
+    key = os.environ.get("AUDIT_HMAC_KEY", "")
+    if key:
+        return hmac.new(key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+    return hashlib.sha256(msg).hexdigest()
 
 
 def write_audit_event(request_id: str, step: str, actor: str, payload: dict) -> dict:
