@@ -239,6 +239,33 @@ locally), skips existing mappings, and checkpoints pending uploads in gitignored
 
 **Goal:** `linked_two_hops` from a Cognee graph; NorthPeak goes Trusted → 70 Caution in the live demo.
 **Plan:** §3.2 (NorthPeak entry), §6.
+**Status:** implemented and live-verified on 2026-11-20, on `step/s4-cognee`.
+
+**Validation:** 149 tests pass on SQLite both in the backend venv with Cognee
+installed and in a fresh requirements-only venv without Cognee. The fixed-ID
+spike passed: one Address node and two Store edges. Cognee 1.6.10 left the
+installed anthropic/openai/fastapi/pydantic versions unchanged; the pre-change
+134 tests also passed immediately after installation. Tests cover indirect and
+direct links (including a newly reported AudioHub), SQL-only names, audit paths,
+health, disabled/missing graph behavior, cache-only scans, and environment
+isolation. With the real embedded graph and SingleStore `shop_demo`, `/chat`
+returned NorthPeak at 70 Caution with the specified reason and `Cognee graph`
+source, health reported `cognee: live`, Best Buy remained first, and the audit
+chain verified intact (10 events). That check disabled Senso and Claude to
+isolate S4. Eight stores yielded 23 nodes and 17 edges on both seed runs.
+NorthPeak and AudioHub's shared phone were applied additively to the existing
+demo database; no demo reset was run. Local configuration is in gitignored
+`backend/.env`; no new credentials are required.
+
+**Setup on another machine (backend stopped):** from `backend/`, install
+`requirements.txt` and `requirements-cognee.txt` into the venv. Set
+`COGNEE_ENABLED=1`, absolute `SYSTEM_ROOT_DIRECTORY` and `DATA_ROOT_DIRECTORY`,
+and `TELEMETRY_DISABLED=true` in the backend environment. Use persistent writable
+storage outside the repository for both roots. Ensure SQL contains the current
+seed, then run `.venv/bin/python scripts/seed_cognee.py` and start the backend
+with the same settings. The script only writes the graph, never resets SQL.
+For `--spike`, use separate temporary roots. Ordinary tests and drills keep
+Cognee disabled and need only `requirements.txt`.
 
 **Tasks**
 1. **Spike S2 first, go/no-go by 2:00:** install Cognee into the backend venv from a new `backend/requirements-cognee.txt`. **Stop and report no-go** if it changes the installed `anthropic`, `openai`, `fastapi` or `pydantic` versions in a way that breaks the existing tests. Then write two `Store` DataPoints pointing at one fixed-ID `Address`, and check that `get_graph_data()` shows one Address node with two edges. Record the result in "Plan corrections".
@@ -308,3 +335,5 @@ locally), skips existing mappings, and checkpoints pending uploads in gitignored
 - S0: `signal` is reserved on SingleStore, so quote that SQL column in schema/seed/tools/attacks; reference-table transactions require the master/DDL endpoint, so configure that endpoint. Added setup/test commands to README and database notes to `.env.example` for reproducibility.
 - S1: `/chat` and a guarded `/policy-check` command already existed; preserved the command, applied the planned reply/status/session contract, and updated old assertions in `tests/test_api.py` that required the superseded reply format and session rejection.
 - S3: Current Senso docs document `content_ids` plus `require_scoped_ids`; both passed the live scope spike, and returned passages are always filtered locally as well. Generic spike queries returned no passages, so use the fake store's name/policy and cross-store negative probes. Added an optional provider `status` read in `extras.statuses()` so background warming failures reach health instead of staying incorrectly `live`. NorthPeak's policy document is included without adding the S4 store.
+
+- S4: Cognee 1.6.10 supports `add_data_points(..., graph_only=True)`, avoiding embedding downloads/API keys entirely. Fixed UUIDs merged correctly, so no value-matching fallback was needed. Its import reloads `.env` with `override=True`; pin its `COGNEE_ENV_FILE` to the bundled empty `app/cognee.env` to preserve process settings and test database guards. Suppress the indirect penalty whenever a direct reported neighbor exists, including when both AudioHub and GadgetFlash are reported, as required by T5. Offer counts and offline trusted counts changed for NorthPeak.

@@ -37,6 +37,7 @@ def scan(listing_id):
     ("l_audiohub", "blocked", 0),
     ("l_bb_clearance", "blocked", 0),
     ("l_soundshack", "trusted", 85),
+    ("l_northpeak", "trusted", 100),
 ])
 def test_demo_tiers(listing, tier, score):
     r = scan(listing)

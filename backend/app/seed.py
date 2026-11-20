@@ -1,6 +1,7 @@
 """Demo seed. Koe owns the final content; this stub already produces the scripted tiers:
 
 Best Buy 100 Trusted · Amazon 3P 70 Caution · fake Apple Blocked (impersonation)
+NorthPeak 100 Trusted offline (70 Caution with Cognee)
 AudioHub Blocked (linked to reported store) · fake Best Buy Blocked · SoundShack 85 Trusted
 """
 from __future__ import annotations
@@ -33,12 +34,15 @@ STORES = [
      "domain_created": str(TODAY - timedelta(days=200)), "flagged": 1},
     {"id": "audiohub", "name": "AudioHub Direct", "domain": "audiohub-direct.com", "platform": "independent",
      "address": "1420 Harbor Blvd Suite 9, Los Angeles, CA", "email": "sales@audiohub-direct.com",
-     "domain_created": str(TODAY - timedelta(days=400))},
+     "domain_created": str(TODAY - timedelta(days=400)), "phone": "+12135550142"},
     {"id": "bb_clearance", "name": "Best Buy Clearance", "domain": "bestbuy-clearance.store", "platform": "independent",
      "address": "300 Liberty Ave, Newark, NJ", "email": "deals@bestbuy-clearance.store",
      "domain_created": str(TODAY - timedelta(days=14))},
     {"id": "soundshack", "name": "SoundShack", "domain": "soundshack.com", "platform": "independent",
      "address": "", "email": "hello@soundshack.com", "domain_created": "2009-06-15"},
+    {"id": "northpeak", "name": "NorthPeak Audio", "domain": "northpeakaudio.com", "platform": "independent",
+     "address": "920 Summit Avenue, Pasadena, CA", "email": "support@northpeakaudio.com",
+     "phone": "+12135550142", "domain_created": str(TODAY - timedelta(days=300))},
 ]
 
 POLICIES = [
@@ -57,6 +61,8 @@ POLICIES = [
      "accepted_payments": ["card", "crypto"]},
     {"store_id": "soundshack", "return_policy": "", "contact_address": "",
      "accepted_payments": ["card", "paypal"]},
+    {"store_id": "northpeak", "return_policy": "30-day returns",
+     "contact_address": "920 Summit Avenue, Pasadena, CA", "accepted_payments": ["card", "paypal"]},
 ]
 
 PRODUCT = "AirPods Pro 2"
@@ -70,6 +76,7 @@ LISTINGS = [
     {"id": "l_bb_clearance", "store_id": "bb_clearance", "product": PRODUCT, "title": "AirPods Pro 2 clearance", "price": 139.00,
      "advertised_discount": 45},
     {"id": "l_soundshack", "store_id": "soundshack", "product": PRODUCT, "title": "Apple AirPods Pro 2", "price": 245.00},
+    {"id": "l_northpeak", "store_id": "northpeak", "product": PRODUCT, "title": "Apple AirPods Pro 2", "price": 255.00},
 ]
 
 REFERENCE_PRICES = [
