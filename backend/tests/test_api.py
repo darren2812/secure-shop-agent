@@ -11,11 +11,15 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app import db  # noqa: E402
 from app.main import app  # noqa: E402
 
-client = TestClient(app)
+client = TestClient(app, client=("127.0.0.1", 50000))  # same machine, like the Vite proxy on localhost
 
 
 def setup_function():
     client.post("/api/reset_demo")
+
+
+def turn(text, request_id=None):
+    return client.post("/api/turn", json={"text": text, "request_id": request_id}).json()
 
 
 def purchases():
@@ -50,11 +54,13 @@ def test_signup_verify_endpoint():
     assert client.post("/api/me/verify", json={"inquiry_id": "inq_x"}).status_code == 400
     client.post("/api/persona/stub-pass/inq_x")
     assert client.post("/api/me/verify", json={"inquiry_id": "inq_x"}).json()["verified"] is True
+    turn("AirPods Pro", "rq2")
     d = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq2"}).json()
     assert d["outcome"] == "allow"
 
 
 def test_buy_flow_with_step_up():
+    turn("AirPods Pro", "rq")
     d = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "rq"}).json()
     assert d["outcome"] == "verify"
     no = client.post("/api/orders", json={"decision_id": d["decision_id"]})
@@ -104,3 +110,53 @@ def test_buy_intent_opens_sheet_and_focus_never_buys():
     assert r["ui_action"]["listing_id"] == "l_apple_outlet" and "blocked" in r["say"]
     assert purchases() == 0
     assert client.post(f"/api/audit/{rid}/verify").json()["intact"] is True
+
+
+lan = TestClient(app, client=("192.168.1.50", 50000))
+ADMIN = [("/api/reset_demo", None), ("/api/attacks/fake_discount", None), ("/api/persona/stub-pass/inq_lan", None),
+         ("/api/reports", {"store_id": "bestbuy"}), ("/api/me/verify", {"inquiry_id": "inq_lan"})]
+
+
+def test_admin_endpoints_refuse_lan_and_other_sites():
+    for path, body in ADMIN:
+        assert lan.post(path, json=body).status_code == 403, path
+        # loopback, but via the Vite proxy for a LAN browser (xfwd) and without the token
+        assert client.post(path, json=body, headers={"X-Forwarded-For": "192.168.1.50"}).status_code == 403, path
+        # CSRF: a hostile page on the presenter's laptop
+        assert client.post(path, json=body, headers={"Origin": "https://evil.example"}).status_code == 403, path
+        assert lan.post(path, json=body, headers={"X-Demo-Token": "wrong"}).status_code == 403, path
+    assert client.post("/api/turn", json={"text": "AirPods Pro"}).json()["results"][0]["listing_id"] == "l_bestbuy"
+
+
+def test_admin_endpoints_allow_local_app_or_demo_token():
+    assert client.post("/api/reset_demo", headers={"Origin": "http://localhost:5173"}).status_code == 200
+    assert client.post("/api/reset_demo", headers={"X-Forwarded-For": "127.0.0.1"}).status_code == 200
+    assert lan.post("/api/reset_demo", headers={"X-Demo-Token": "test-token"}).status_code == 200
+    assert lan.post("/api/persona/stub-pass/inq_tok", headers={"X-Demo-Token": "test-token"}).status_code == 200
+
+
+def test_turn_stays_open_for_firedrill():
+    r = lan.post("/api/turn", json={"text": "AirPods Pro, cheapest price, Best Buy clearance is fine.", "request_id": "fd_1"})
+    assert r.status_code == 200 and r.json()["request_id"] == "fd_1"
+
+
+def test_request_id_is_an_opaque_label():
+    for rid in ("../../x y<script>", "a" * 65, "", "user u_demo"):
+        assert client.post("/api/turn", json={"text": "AirPods Pro", "request_id": rid}).status_code == 422, rid
+        assert client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": rid}).status_code == 422
+    assert client.post("/api/reports", json={"store_id": "bestbuy", "request_id": "../x"}).status_code == 422
+
+
+def test_policy_check_needs_a_user_request_first():
+    r = client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "fd_6"})
+    assert r.status_code == 400 and r.json()["detail"]["code"] == "unknown_request"
+    turn("AirPods Pro", "fd_6")
+    assert client.post("/api/policy/check", json={"listing_id": "l_bestbuy", "request_id": "fd_6"}).json()["outcome"] == "verify"
+
+
+def test_ambiguous_links_are_never_vouched_for():
+    for url in ("https://evil.shop\\@bestbuy.com/airpods-pro-90-off", "https://evil.shop@bestbuy.com/x",
+                "https://bestbuy.com@evil.shop/x", "https://user:pw@bestbuy.com/x"):
+        r = turn(url)
+        assert r["results"] == [] and r["tier"] == "caution" and "don't know" in r["say"], url
+    assert turn("https://www.bestbuy.com/site/airpods")["tier"] == "trusted"

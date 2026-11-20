@@ -5,11 +5,13 @@ The LLM has no access to these functions. Identity comes from the server session
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from . import db, persona
-from .audit import write_audit_event
+from .audit import get_trail, write_audit_event
 from .tools import listing_by_id, scan_store
+
+DECISION_TTL = timedelta(minutes=5)
 
 
 class PolicyError(Exception):
@@ -37,6 +39,9 @@ def _user(conn, user_id: str) -> dict:
 
 def check_policy(user_id: str, listing_id: str, request_id: str) -> dict:
     """Authoritative re-check at pick time. Returns allow | verify | deny with reasons and a single-use decision_id."""
+    # Every purchase receipt starts with what the user asked for; never write into chains that didn't.
+    if not any(e.get("step") == "user_request" for e in get_trail(request_id)):
+        raise PolicyError("unknown_request", "Not charged: start from a search first")
     listing = listing_by_id(listing_id)
     if not listing:
         raise PolicyError("unknown_listing", "Listing not found")
@@ -111,15 +116,23 @@ def place_order(user_id: str, decision_id: str, verification_id: str | None = No
     """Simulated checkout. A decision can be used once; verify decisions need a passed Persona inquiry."""
     with db.connect() as conn:
         row = conn.execute(
-            "SELECT request_id, user_id, listing_id, amount, outcome, used FROM decisions WHERE id = ?", (decision_id,)
+            "SELECT request_id, user_id, listing_id, amount, outcome, used, created_at FROM decisions WHERE id = ?",
+            (decision_id,),
         ).fetchone()
         if not row:
             raise PolicyError("unknown_decision", "Not charged: decision not found")
-        request_id, d_user, listing_id, amount, outcome, used = row
+        request_id, d_user, listing_id, amount, outcome, used, created_at = row
         if d_user != user_id:
             raise PolicyError("forbidden", "Not charged: decision belongs to another user")
         if outcome == "deny":
             raise PolicyError("denied", "Not charged: this purchase was denied by your rules")
+        # A decision is a quote, not a guarantee: re-check age, store and price at pay time.
+        if datetime.now(timezone.utc) - datetime.fromisoformat(created_at) > DECISION_TTL:
+            raise PolicyError("expired", "Not charged: this check expired, please review it again")
+        listing = listing_by_id(listing_id)
+        if (not listing or float(listing["price"]) != float(amount)
+                or scan_store(listing["store_id"], listing)["tier"] == "blocked"):
+            raise PolicyError("denied", "Not charged: the store or price changed since you checked")
         if outcome == "verify":
             if not verification_id or not persona.is_passed(verification_id):
                 raise PolicyError("verification_required", "Not charged: identity verification required")
@@ -133,7 +146,12 @@ def place_order(user_id: str, decision_id: str, verification_id: str | None = No
 
         month = _month()
         conn.execute("INSERT OR IGNORE INTO ledger (user_id, month, spent) VALUES (?, ?, 0)", (user_id, month))
-        conn.execute("UPDATE ledger SET spent = spent + ? WHERE user_id = ? AND month = ?", (amount, user_id, month))
+        cap = _user(conn, user_id)["cap"]
+        # Atomic cap check: parallel or stockpiled decisions can't add up past the monthly cap.
+        cur = conn.execute("UPDATE ledger SET spent = spent + ? WHERE user_id = ? AND month = ? AND spent + ? <= ?",
+                           (amount, user_id, month, amount, cap))
+        if cur.rowcount != 1:  # raising rolls back the used flag (and any verification) too
+            raise PolicyError("denied", "Not charged: your monthly cap would be exceeded")
         purchase_id = "pur_" + uuid.uuid4().hex[:16]
         conn.execute(
             "INSERT INTO purchases (id, request_id, user_id, listing_id, amount, status, decision_id, verification_id, created_at)"

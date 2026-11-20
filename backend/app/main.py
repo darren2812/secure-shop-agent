@@ -1,12 +1,13 @@
 """HTTP API. Identity comes from the server (demo: one seeded user), never from the body or the LLM."""
 from __future__ import annotations
 
+import hmac
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -27,9 +28,13 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="Secure Shopping Agent", lifespan=lifespan)
+def allowed_origins() -> list[str]:
+    return [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()],
+    allow_origins=allowed_origins(),
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-Demo-Token"],
 )
@@ -41,14 +46,35 @@ def current_user() -> str:
     return DEMO_USER  # hackathon: single demo account; production = real session
 
 
+LOOPBACK = {"127.0.0.1", "::1", "::ffff:127.0.0.1"}
+
+
+def demo_only(request: Request, x_demo_token: str | None = Header(default=None)) -> None:
+    """Demo/admin routes: this machine or the demo token. Never another site, the LAN or a tunnel."""
+    origin = request.headers.get("origin")
+    if origin and origin not in allowed_origins():  # bodyless POSTs skip the CORS preflight
+        raise HTTPException(403, "Unexpected origin")
+    hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+    peer = request.client.host if request.client else ""
+    local = peer in LOOPBACK and all(h in LOOPBACK for h in hops)  # Vite proxy sets X-Forwarded-For (xfwd)
+    expected = os.environ.get("DEMO_TOKEN", "")
+    has_token = bool(expected) and hmac.compare_digest((x_demo_token or "").encode(), expected.encode())
+    if not (local or has_token):
+        raise HTTPException(403, "Demo endpoint not available from this network")
+
+
+# Request ids are opaque labels for an audit chain ("req_…" from us, "fd_1" from Firedrill), never paths or markup.
+RID = r"^[A-Za-z0-9_-]{1,64}$"
+
+
 class TurnIn(BaseModel):
     text: str = Field(min_length=1, max_length=2000)
-    request_id: str | None = Field(default=None, max_length=64)
+    request_id: str | None = Field(default=None, pattern=RID)
 
 
 class PolicyIn(BaseModel):
     listing_id: str = Field(max_length=64)
-    request_id: str = Field(max_length=64)
+    request_id: str = Field(pattern=RID)
 
 
 class OrderIn(BaseModel):
@@ -58,7 +84,7 @@ class OrderIn(BaseModel):
 
 class ReportIn(BaseModel):
     store_id: str = Field(max_length=64)
-    request_id: str | None = Field(default=None, max_length=64)
+    request_id: str | None = Field(default=None, pattern=RID)
 
 
 class SdpIn(BaseModel):
@@ -80,7 +106,7 @@ def me():
     return get_profile(current_user())
 
 
-@app.post("/api/me/verify")
+@app.post("/api/me/verify", dependencies=[Depends(demo_only)])
 def me_verify(body: VerifyIn):
     """One-time Persona verification at signup."""
     try:
@@ -99,8 +125,8 @@ def trust():
              "data_sent": "Your product request, store signals, seller text marked as untrusted",
              "data_not_sent": "Your identity, card, limits, purchase decisions"},
             {"service": "GPT-Live (OpenAI)", "purpose": "Voice conversation",
-             "data_sent": "Your voice, and the verdict sentence our code writes",
-             "data_not_sent": "Seller text, your identity, card, limits"},
+             "data_sent": "Your voice, and the verdict sentence our code writes (store names cleaned to a plain name)",
+             "data_not_sent": "Listing titles, seller policies, your identity, card, limits"},
             {"service": "Persona", "purpose": "Verify your identity once (ID + selfie)",
              "data_sent": "Your ID photo and selfie, sent directly to Persona",
              "data_not_sent": "Your shopping requests and purchases"},
@@ -118,6 +144,7 @@ def trust():
             {"name": "Identity verified once", "how": "Persona ID + selfie; the server checks the result, never the browser"},
             {"name": "Single-use decisions", "how": "Each purchase decision can be used once, even with parallel requests"},
             {"name": "Tamper-evident receipts", "how": "Each event is chained to the previous one" + (" with a server-only HMAC key" if os.environ.get("AUDIT_HMAC_KEY") else "")},
+            {"name": "Demo controls stay local", "how": "Reset, attacks, reports and verification only answer this machine or the demo app"},
             {"name": "Protected voice endpoint", "how": "Origin allowlist, demo token, rate limit; API keys never reach the browser"},
             {"name": "Encryption in transit", "how": "HTTPS/TLS when deployed; keys stay server-side"},
         ],
@@ -147,11 +174,13 @@ def orders(body: OrderIn):
         raise HTTPException(400, {"code": e.code, "message": e.message, "charged": e.charged})
 
 
-@app.post("/api/persona/stub-pass/{inquiry_id}")
+@app.post("/api/persona/stub-pass/{inquiry_id}", dependencies=[Depends(demo_only)])
 def persona_stub(inquiry_id: str):
     """Local demo only, disabled when PERSONA_API_KEY is set."""
     if persona.enabled():
         raise HTTPException(404)
+    if len(inquiry_id) > 128:
+        raise HTTPException(422, "inquiry_id too long")
     persona.stub_mark_passed(inquiry_id)
     return {"inquiry_id": inquiry_id, "status": "completed", "stub": True}
 
@@ -166,7 +195,7 @@ def audit_verify(request_id: str):
     return audit.verify_trail(request_id)
 
 
-@app.post("/api/reports")
+@app.post("/api/reports", dependencies=[Depends(demo_only)])
 def report(body: ReportIn):
     with db.connect() as conn:
         cur = conn.execute("UPDATE stores SET flagged = 1 WHERE id = ?", (body.store_id,))
@@ -177,7 +206,7 @@ def report(body: ReportIn):
     return {"store_id": body.store_id, "flagged": True}
 
 
-@app.post("/api/reset_demo")
+@app.post("/api/reset_demo", dependencies=[Depends(demo_only)])
 def reset_demo():
     reset_and_seed()
     return {"reset": True}
@@ -188,7 +217,7 @@ def attack_list():
     return [{"name": k, "description": v} for k, v in attacks.SCENARIOS.items()]
 
 
-@app.post("/api/attacks/{name}")
+@app.post("/api/attacks/{name}", dependencies=[Depends(demo_only)])
 def attack_run(name: str):
     """Demo only: mutate seeded data the way an attacker would, then re-scan with the same code."""
     from .tools import listing_by_id, scan_store

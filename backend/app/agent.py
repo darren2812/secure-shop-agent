@@ -12,7 +12,7 @@ import secrets
 import uuid
 
 from .audit import write_audit_event
-from .tools import listing_by_id, scan_store, search_listings
+from .tools import listing_by_id, safe_name, scan_store, search_listings
 
 SYSTEM = """You are the reasoning backend of a shopping safety agent.
 Use the tools to find listings for what the user wants and scan every store that sells them.
@@ -53,13 +53,12 @@ TOOLS = [
 ]
 
 MAX_STEPS = 8
-_MARK_RE = re.compile(r"<</?untrusted:[^>]*>>", re.I)
 
 
 def spotlight(text: str, mark: str) -> str:
     """Spotlighting (delimit + datamark) for seller text before it reaches the LLM.
     A per-request random mark means a seller can't forge the closing tag."""
-    clean = _MARK_RE.sub("", str(text or ""))[:1000]
+    clean = re.sub(r"[<>]", "", str(text or ""))[:1000]  # no delimiters at all, so nested tags can't rebuild one
     return f"<<untrusted:{mark}>>" + "^".join(clean.split()) + f"<</untrusted:{mark}>>"
 
 
@@ -92,7 +91,7 @@ def _run_tool(name: str, args: dict, request_id: str, scans: dict, ui: dict | No
                 "note": "Highlighted on screen. Blocked listings can't be bought." if tier == "blocked" else "Highlighted. The user must tap Confirm."}
     if name == "search_listings":
         rows = search_listings(str(args.get("query", ""))[:200])
-        out = [{"listing_id": r["id"], "store_id": r["store_id"], "store_name": r["store_name"],
+        out = [{"listing_id": r["id"], "store_id": r["store_id"], "store_name": safe_name(r["store_name"]),
                 "price": float(r["price"]), "untrusted_text": {"listing_title": r["title"]}} for r in rows]
         write_audit_event(request_id, "search_listings", "code", {"query": args.get("query"), "count": len(out)})
         return {"listings": out}

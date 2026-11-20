@@ -11,3 +11,7 @@ dist/
 *.sqlite3
 .DS_Store
 .pytest_cache/
+
+# Firedrill local run files (absolute paths, run receipts)
+firedrill/local-plan.json
+firedrill/*.out.json

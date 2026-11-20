@@ -76,10 +76,15 @@ export class ApiError extends Error {
   }
 }
 
+const DEMO_TOKEN = import.meta.env.VITE_DEMO_TOKEN as string | undefined;
+
+/** Demo controls (reset, attacks, verification) need this when the app isn't opened on the same machine. */
+export const demoHeaders = (): Record<string, string> => (DEMO_TOKEN ? { "X-Demo-Token": DEMO_TOKEN } : {});
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers: { ...demoHeaders(), ...(body ? { "Content-Type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));

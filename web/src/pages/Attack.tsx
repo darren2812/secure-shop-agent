@@ -3,7 +3,7 @@ import { Orb } from "../orb/Orb";
 import { OrbLabel } from "../orb/OrbLabel";
 import { TIER_LABEL } from "../orb/colors";
 import { useOrbStore } from "../orb/store";
-import type { Reason, ResultTier } from "../api";
+import { demoHeaders, type Reason, type ResultTier } from "../api";
 
 interface Scenario { name: string; description: string }
 interface AttackResult {
@@ -36,7 +36,7 @@ export function Attack() {
     setAgentState("scanning");
     setLabel("Attacker is changing the data…");
     try {
-      const r: AttackResult = await fetch(`/api/attacks/${name}`, { method: "POST" }).then((x) => x.json());
+      const r: AttackResult = await fetch(`/api/attacks/${name}`, { method: "POST", headers: demoHeaders() }).then((x) => x.json());
       setResult(r);
       setTier(r.after.tier);
       setLabel(`${r.after.store.name}: ${r.after.reasons[0]?.text ?? "no risk signals"}`);
@@ -47,7 +47,7 @@ export function Attack() {
   };
 
   const reset = async () => {
-    await fetch("/api/reset_demo", { method: "POST" });
+    await fetch("/api/reset_demo", { method: "POST", headers: demoHeaders() });
     setResult(null);
     setTier(null);
     setLabel("Demo data reset");

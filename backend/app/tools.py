@@ -6,6 +6,8 @@ under `untrusted_text`; it never feeds a signal or a score.
 from __future__ import annotations
 
 import json
+import re
+import unicodedata
 from datetime import date
 from urllib.parse import urlparse
 
@@ -15,12 +17,25 @@ from .scoring import score_store
 NEW_DOMAIN_DAYS = 90
 PRICE_TOO_LOW_PCT = 35
 IRREVERSIBLE = {"crypto", "wire", "zelle", "gift_card"}
-OFFICIAL_BRANDS = {
+OFFICIAL_BRANDS = {  # keys are normalized: lowercase letters only
     "apple": {"apple.com"},
-    "best buy": {"bestbuy.com"},
     "bestbuy": {"bestbuy.com"},
     "amazon": {"amazon.com"},
+    "walmart": {"walmart.com"},
+    "target": {"target.com"},
+    "nintendo": {"nintendo.com"},
 }
+# Digits, symbols and Cyrillic/Greek letters that look like Latin ones. A short manual table, not full UTS #39.
+_LOOKALIKE = str.maketrans({
+    "0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t", "8": "b", "9": "g",
+    "$": "s", "@": "a", "|": "l", "!": "i", "\u20ac": "e",
+    "\u0430": "a", "\u0432": "b", "\u0435": "e", "\u0451": "e", "\u043a": "k", "\u043c": "m", "\u043d": "h",
+    "\u043e": "o", "\u0440": "p", "\u0441": "c", "\u0442": "t", "\u0443": "y", "\u0445": "x", "\u0456": "i",
+    "\u0458": "j", "\u0455": "s", "\u0501": "d", "\u04cf": "l", "\u0261": "g",
+    "\u03b1": "a", "\u03b2": "b", "\u03b5": "e", "\u03b7": "n", "\u03b9": "i", "\u03ba": "k", "\u03bd": "v",
+    "\u03bf": "o", "\u03c1": "p", "\u03c4": "t", "\u03c5": "u", "\u03c7": "x", "\u03c9": "w",
+    "\u0131": "i", "\u0142": "l", "\u00df": "ss", "\u00f8": "o",
+})
 
 
 def _rows(conn, sql, params=()):
@@ -65,13 +80,28 @@ def find_linked_flagged(conn, store: dict) -> list[dict]:
     )
 
 
+def _norm(s: str) -> str:
+    """Fold a store name for brand matching: NFKC, drop accents, map look-alikes, keep only a-z."""
+    s = unicodedata.normalize("NFKC", str(s or "")).lower()
+    s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+    return re.sub(r"[^a-z]", "", s.translate(_LOOKALIKE))
+
+
 def _brand_impersonated(name: str, domain: str) -> str | None:
-    n = name.lower()
-    d = (domain or "").lower()
+    n = _norm(name)
+    # Also try the classic swaps: rn->m, vv->w, and I/l confusion in both directions.
+    variants = {n, n.replace("rn", "m").replace("vv", "w"), n.replace("i", "l"), n.replace("l", "i")}
+    d = (domain or "").lower().rstrip(".")
     for brand, official in OFFICIAL_BRANDS.items():
-        if brand in n and not any(d == o or d.endswith("." + o) for o in official):
-            return brand.title()
+        if any(brand in v for v in variants) and not any(d == o or d.endswith("." + o) for o in official):
+            return {"bestbuy": "Best Buy"}.get(brand, brand.title())
     return None
+
+
+def safe_name(s: str) -> str:
+    """Seller-chosen display name: keep it a short name, not a sentence, before it reaches the LLM or the voice."""
+    clean = re.sub(r"[^\w &'.()-]", "", unicodedata.normalize("NFKC", str(s or "")))
+    return " ".join(clean.split())[:40].strip() or "Unnamed store"
 
 
 def scan_store(store_id: str, listing: dict | None = None) -> dict:
@@ -85,7 +115,7 @@ def scan_store(store_id: str, listing: dict | None = None) -> dict:
         facts_rows = _rows(conn, "SELECT params FROM store_signals WHERE store_id = ? AND signal = 'facts'", (store_id,))
         facts = json.loads(facts_rows[0]["params"]) if facts_rows else {}
         extra = _rows(conn, "SELECT signal, params, source, evidence_url FROM store_signals WHERE store_id = ? AND signal <> 'facts'", (store_id,))
-        linked = find_linked_flagged(conn, store)
+        linked = [{**l, "name": safe_name(l["name"])} for l in find_linked_flagged(conn, store)]
         ref = None
         if listing:
             refs = _rows(conn, "SELECT * FROM reference_prices WHERE product = ?", (listing["product"],))
@@ -131,7 +161,7 @@ def scan_store(store_id: str, listing: dict | None = None) -> dict:
                         "source": e["source"] or "", "evidence_url": e["evidence_url"] or ""})
 
     result = score_store(store_id, signals).to_dict()
-    result["store"] = {"id": store["id"], "name": store["name"], "domain": store.get("domain")}
+    result["store"] = {"id": store["id"], "name": safe_name(store["name"]), "domain": store.get("domain")}
     result["linked_stores"] = linked
     result["untrusted_text"] = {  # quoted data for the LLM to describe, never to obey
         "listing_title": (listing or {}).get("title", ""),
@@ -147,5 +177,13 @@ def listing_by_id(listing_id: str) -> dict | None:
 
 
 def domain_of(url: str) -> str:
-    host = urlparse(url if "://" in url else "https://" + url).hostname or ""
-    return host.removeprefix("www.")
+    """Host the browser would actually open. Ambiguous URLs return "" (unknown store), never a vouched one."""
+    url = url.strip().replace("\\", "/")  # browsers treat "\" as "/"
+    try:
+        p = urlparse(url if "://" in url else "https://" + url)
+        host = p.hostname or ""
+        if p.username is not None or p.password is not None or "@" in p.netloc:  # user@host tricks
+            return ""
+    except ValueError:
+        return ""
+    return host.rstrip(".").removeprefix("www.")

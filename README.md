@@ -14,10 +14,11 @@ Built at the Tokens& Personal Agents Hackathon (SF, Nov 20 2026).
 ## Security rules
 
 1. Code decides, the LLM explains. Weights live in code, not in the database.
-2. Seller text (titles, policies) reaches Claude only as quoted data and never reaches the voice model.
+2. Seller text (titles, policies) reaches Claude only as quoted, spotlighted data and never reaches the voice model. The only seller-chosen string in the spoken verdict is the store name, cleaned by code to a short plain name (no punctuation, max 40 characters).
 3. Voice and text can't buy. Identity is verified once with Persona; after that, buying = tap → named confirm dialog (with a warning if over your usual limit).
-4. Each purchase decision is single-use.
-5. The voice-session endpoint checks origin, a demo token and a rate limit.
+4. Each purchase decision is single-use, expires after 5 minutes, and is re-checked at pay time (store tier, price, monthly cap applied atomically).
+5. The voice-session endpoint checks origin, a demo token and a rate limit. Demo controls (reset, attacks, reports, verification) only answer this machine or the demo token, and refuse other sites' origins.
+6. Brand impersonation is checked on a folded name (Unicode NFKC, look-alike letters and digits, punctuation removed). It errs on the safe side: a name like "Pineapple Audio" off apple.com is also blocked.
 
 ## Run locally
 
