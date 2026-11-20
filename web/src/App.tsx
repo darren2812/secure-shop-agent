@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Home } from "./pages/Home";
 import { OrbLab } from "./pages/OrbLab";
+import { Attack } from "./pages/Attack";
 
 /** Tiny hash router: "#/" → Home, "#/orb-lab" → OrbLab. Also accepts path /orb-lab. */
 function currentRoute(): string {
@@ -21,5 +22,7 @@ export function App() {
     };
   }, []);
 
-  return route.startsWith("/orb-lab") ? <OrbLab /> : <Home />;
+  if (route.startsWith("/orb-lab")) return <OrbLab />;
+  if (route.startsWith("/attack")) return <Attack />;
+  return <Home />;
 }

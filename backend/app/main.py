@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from . import audit, db, persona, voice  # noqa: E402
+from . import attacks, audit, db, persona, voice  # noqa: E402
 from .agent import run_turn  # noqa: E402
 from .policy import PolicyError, check_policy, place_order  # noqa: E402
 from .seed import reset_and_seed  # noqa: E402
@@ -128,6 +128,37 @@ def report(body: ReportIn):
 def reset_demo():
     reset_and_seed()
     return {"reset": True}
+
+
+@app.get("/api/attacks")
+def attack_list():
+    return [{"name": k, "description": v} for k, v in attacks.SCENARIOS.items()]
+
+
+@app.post("/api/attacks/{name}")
+def attack_run(name: str):
+    """Demo only: mutate seeded data the way an attacker would, then re-scan with the same code."""
+    from .tools import listing_by_id, scan_store
+
+    if name not in attacks.SCENARIOS:
+        raise HTTPException(404, "unknown scenario")
+    before = None
+    preview = {"prompt_injection": "l_apple_outlet", "fake_discount": "l_amz"}.get(name)
+    if preview:
+        l = listing_by_id(preview)
+        before = scan_store(l["store_id"], l)
+    target = attacks.run(name)
+    l = listing_by_id(target["listing_id"])
+    after = scan_store(l["store_id"], l)
+    request_id = f"attack_{name}"
+    audit.write_audit_event(request_id, "attack_scenario", "system", {
+        "scenario": name, "listing_id": l["id"], "tier_before": before and before["tier"],
+        "tier_after": after["tier"], "score_after": after["score"], "reasons": [r["code"] for r in after["reasons"]],
+    })
+    return {"scenario": name, "description": attacks.SCENARIOS[name], "request_id": request_id,
+            "listing": {"id": l["id"], "title": l["title"], "price": float(l["price"])},
+            "before": before and {"tier": before["tier"], "score": before["score"]},
+            "after": after}
 
 
 @app.post("/api/voice/session")

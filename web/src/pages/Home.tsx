@@ -101,7 +101,7 @@ export function Home() {
       {buying && turn ? <BuyDialog result={buying} requestId={turn.request_id} onClose={closeBuy} /> : null}
 
       <footer className="home__foot">
-        <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
+        <a href="#/attack">attack</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
       </footer>
     </main>
   );

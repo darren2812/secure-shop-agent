@@ -70,3 +70,15 @@ def test_report_flags_store_and_links_others():
     r = client.post("/api/turn", json={"text": "AirPods Pro"}).json()
     bb = next(x for x in r["results"] if x["listing_id"] == "l_bestbuy")
     assert bb["tier"] == "blocked"
+
+
+def test_attack_scenarios_keep_verdicts():
+    inj = client.post("/api/attacks/prompt_injection").json()
+    assert inj["before"] == {"tier": inj["after"]["tier"], "score": inj["after"]["score"]} and inj["after"]["tier"] == "blocked"
+    assert "ignore all previous rules" in inj["after"]["untrusted_text"]["listing_title"]
+    assert client.post("/api/attacks/fake_best_buy").json()["after"]["reasons"][0]["code"] == "brand_impersonation"
+    ring = client.post("/api/attacks/fraud_ring").json()["after"]
+    assert ring["tier"] == "blocked" and ring["linked_stores"][0]["attribute"] == "address"
+    disc = client.post("/api/attacks/fake_discount").json()
+    assert any(r["code"] == "fake_discount" for r in disc["after"]["reasons"])
+    assert client.post("/api/audit/attack_fraud_ring/verify").json()["intact"] is True
