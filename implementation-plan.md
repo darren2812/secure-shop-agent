@@ -188,6 +188,37 @@ and cache-only checkout (including a newly blocked cached result). Five real
 
 **Goal:** `policy_red_flag` with a cited Senso passage; TechDeals goes 70 → 60 in the live demo.
 **Plan:** §5 (all of it).
+**Status:** implemented and live-verified on 2026-11-20, on `step/s3-senso`.
+
+**Validation:** 134 tests pass on SQLite, including 24 Senso tests using
+`httpx.MockTransport`. Coverage includes the 70 → 60 TechDeals penalty,
+store/score filtering, fixed labels and citations, untrusted passage isolation,
+timeouts/500/402, cache expiry and cache-only checkout, background warming and
+health failures, persistent mappings, resumable ingestion, and scope-spike
+verification/fallback. The live two-store spike verified `content_ids` with
+`require_scoped_ids`, including queries for the other store. All six policies
+were ingested into Senso and mapped in SingleStore `shop_demo`; re-running the
+seed command skipped all six. With real Senso retrieval and the code-driven
+chat path, TechDeals returned 60 Caution with the specified cited reason,
+health reported `senso: cached`, and the audit chain verified intact. Startup
+made five requests (NorthPeak is not in SQL until S4); both the first and second
+`/chat` searches then made zero Senso requests. Credentials and upload
+checkpoints remain gitignored. The full remote SingleStore suite was stopped
+after 9 passing tests to focus remote verification on S3's tests.
+SingleStore S3 coverage passed across targeted runs: 21 original checks plus
+3 new/updated checks. Two scope assertions from the long-running process had
+loaded the earlier two-query spike; rerunning them against the final four-query
+spike passed, together with the new long-passage excerpt check.
+
+**Live setup (from `backend/`, after setting the key):**
+```bash
+.venv/bin/python scripts/seed_senso.py --spike
+.venv/bin/python scripts/seed_senso.py
+```
+The spike ingests two fake stores and records its measured `SENSO_SCOPE_FIELD`
+in `backend/.env`. The seed command uses the configured database (`shop_demo`
+locally), skips existing mappings, and checkpoints pending uploads in gitignored
+`.env.senso-ingest-*.json` files. Restart the backend afterward to warm its cache.
 
 **Tasks**
 1. **Spike S1 first (15 min):** ingest two tiny docs for two fake stores, wait for `complete`, try `/org/search/context` with `content_ids`. Record the result in `SENSO_SCOPE_FIELD` (field name, or empty for the filter fallback) and in "Plan corrections" below.
@@ -276,3 +307,4 @@ and cache-only checkout (including a newly blocked cached result). Five real
 
 - S0: `signal` is reserved on SingleStore, so quote that SQL column in schema/seed/tools/attacks; reference-table transactions require the master/DDL endpoint, so configure that endpoint. Added setup/test commands to README and database notes to `.env.example` for reproducibility.
 - S1: `/chat` and a guarded `/policy-check` command already existed; preserved the command, applied the planned reply/status/session contract, and updated old assertions in `tests/test_api.py` that required the superseded reply format and session rejection.
+- S3: Current Senso docs document `content_ids` plus `require_scoped_ids`; both passed the live scope spike, and returned passages are always filtered locally as well. Generic spike queries returned no passages, so use the fake store's name/policy and cross-store negative probes. Added an optional provider `status` read in `extras.statuses()` so background warming failures reach health instead of staying incorrectly `live`. NorthPeak's policy document is included without adding the S4 store.
