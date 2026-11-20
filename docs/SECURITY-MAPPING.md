@@ -43,7 +43,7 @@ Scope: this repo as of Nov 20 2026 (hackathon build: one seeded demo user, simul
 - **What we store about the user:** limits, a `verified` flag, `persona_inquiry_id`, decisions and purchases. The audit trail also stores request text, which includes voice transcripts. No ID images, no card data.
 - **PCI DSS v4.0.1 (aligned, not certified):** Warden is designed for the lightest scope, SAQ A. Checkout is simulated today (`"simulated": true`), and no card number, CVV or expiry is ever collected, sent or stored. In production the card goes only to a tokenized processor (hosted fields or a wallet); Warden keeps only the processor token and last-4 for receipts. Requirements we still address without storing cards:
   - Req. 3 (protect stored account data): nothing to protect, because none is stored. The database has no card fields.
-  - Req. 6 (secure software): spotlighting against prompt injection, input validation, 151 tests, Firedrill drills, exploitability-ranked fixes.
+  - Req. 6 (secure software): spotlighting against prompt injection, input validation, 158 tests, Firedrill drills, exploitability-ranked fixes.
   - Req. 7 (least privilege): the LLM has no purchase tool, and spending limits change only by the human in the UI.
   - Req. 8 (identify users): one-time identity verification before any purchase.
   - Req. 10 (log and monitor): every decision goes into an HMAC-keyed, hash-chained audit trail (`audit.py`), verifiable via `/api/audit/{id}/verify`.
@@ -66,6 +66,6 @@ Scope: this repo as of Nov 20 2026 (hackathon build: one seeded demo user, simul
 1. OWASP LLM Top 10 (2025): 4 implemented, 5 partial, 1 N/A, with every claim mapped to a file.
 2. Excessive agency (LLM06): the LLM has no purchase tool. Buying takes a tap plus a single-use, 5-minute decision that's re-checked at pay time.
 3. Prompt injection (LLM01): seller text is spotlighted with a random marker per request, and code sets every score.
-4. CrowdStrike 5 steps: exploitability-ranked fixes (6 of 18), continuous tests (151) and Firedrill drills (6/6 passed, scores 85–99.5), no standing privileges for the AI.
+4. CrowdStrike 5 steps: exploitability-ranked fixes (6 of 18), continuous tests (158) and Firedrill drills (6/6 passed, scores 85–99.5), no standing privileges for the AI.
 5. NIST AI RMF: Govern (rules in code), Map (`/api/trust` data flows), Measure (tests + drills), Manage (hash-chained receipts).
 6. PCI DSS: designed for SAQ A. Warden never sees or stores your card number; payments are tokenized by the processor. The audit log covers req. 10, and least privilege covers req. 7. One-time ID check, only the inquiry ID is stored.
