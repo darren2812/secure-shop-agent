@@ -65,7 +65,11 @@ def statuses() -> dict[str, str]:
     result = {}
     for provider in PROVIDERS:
         try:
-            result[provider.name] = _statuses.get(provider.name, "off") if provider.enabled() else "off"
+            # Background warmers can finish (or fail) after startup returns.
+            result[provider.name] = (
+                getattr(provider, "status", _statuses.get(provider.name, "off"))
+                if provider.enabled() else "off"
+            )
         except Exception:
             result[provider.name] = "error"
     return result
@@ -95,3 +99,9 @@ def run(store: dict, flagged: list[dict], network: bool) -> tuple[list[dict], di
         sources[provider.name] = status
         _statuses[provider.name] = status
     return signals, sources, untrusted, audit
+
+
+# Import after ExtraResult is defined: providers share that result contract.
+from .senso import SensoProvider  # noqa: E402
+
+PROVIDERS.append(SensoProvider())

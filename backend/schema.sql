@@ -101,3 +101,11 @@ CREATE TABLE IF NOT EXISTS ledger (
   spent DECIMAL(10,2) NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, month)
 );
+
+-- Persistent Senso document mappings survive demo resets.
+CREATE TABLE IF NOT EXISTS senso_docs (
+  store_id VARCHAR(64) NOT NULL,
+  content_id VARCHAR(128) PRIMARY KEY,
+  title VARCHAR(512) NOT NULL,
+  url TEXT
+);
