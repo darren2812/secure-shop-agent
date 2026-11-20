@@ -551,3 +551,47 @@ h1, h2, h3 { font-weight: 400; }
 .captions span { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
 .captions__you { border-left: 3px solid #22D3EE; }
 .captions__warden { border-left: 3px solid #5B8CFF; }
+
+/* ---------- Results pop-up (fits the viewport; only its body scrolls) ---------- */
+.rpop {
+  position: fixed; inset: auto 0 0 0; margin: 0 auto; width: 100%; max-width: 520px;
+  max-height: min(94dvh, 860px); padding: 0; border: 0; border-radius: 24px 24px 0 0;
+  background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line);
+  display: none; flex-direction: column; overflow: hidden;
+  animation: psheet-up 600ms var(--ease-lujo);
+}
+.rpop[open] { display: flex; }
+.rpop::backdrop { background: rgb(3 5 12 / 0.78); backdrop-filter: blur(3px); }
+.rpop__head { padding-top: 4px; }
+.rpop__head h2 { font-size: 1.375rem; }
+.rpop__body { overflow-y: auto; overscroll-behavior: contain; padding: 4px 20px 12px; flex: 1 1 auto; }
+.rpop__why {
+  margin: 4px 0 14px; font-size: 1.0625rem; line-height: 1.45; font-weight: 320; color: var(--fg-2); text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.rpop .results { gap: 14px; margin-top: 0; }
+.rpop .best { padding: 20px 18px 18px; gap: 10px; }
+.rpop .best__store { font-size: 1.5rem; }
+.rpop .best__price { font-size: 2.5rem; }
+.rpop .best__buy { margin-top: 4px; }
+.rpop .results__avoided { margin: 0; font-size: 1rem; }
+.rpop .results__avoided strong { display: inline; font-size: 1.375rem; font-weight: 400; }
+.rpop .results__more { min-height: 48px; }
+.rpop__foot {
+  flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 8px 20px calc(10px + env(safe-area-inset-bottom)) 10px;
+  border-top: 1px solid var(--line); background: var(--surface);
+}
+.orb--mini { flex: none; cursor: default; margin: -18px 0 -6px; }
+.rpop__say { min-width: 0; display: grid; gap: 2px; justify-items: start; }
+.rpop__line { margin: 2px 0 0; font-size: 0.9375rem; color: var(--text); }
+.rpop__links { margin: 0 0 0 -6px; display: flex; align-items: center; gap: 2px; color: var(--muted); font-size: 0.9375rem; }
+.rpop__links .link { min-height: 40px; }
+.orb-slot { flex: none; }
+.viewres { margin: 10px auto 0; }
+/* Security pill steps aside while the pop-up is open (it would sit on the corner orb row). */
+.home--popup .trust-fab { display: none; }
+@media (min-width: 720px) and (min-height: 700px) {
+  .rpop { inset: 0; margin: auto; border-radius: 24px; max-height: min(88dvh, 820px); }
+  .rpop .psheet__grip { display: none; }
+}

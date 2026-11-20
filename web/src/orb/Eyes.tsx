@@ -125,9 +125,14 @@ const badgeIn: Variants = {
 interface EyesProps {
   /** Unit-ish direction of the store card from the orb; default: below. */
   storeCardDirection?: { x: number; y: number };
+  /**
+   * Optional: verdict eyes (trusted / caution / blocked) look this way instead of their default
+   * direction, e.g. toward an offer card. Verify keeps looking at the lock. Unset = default behavior.
+   */
+  lookAt?: { x: number; y: number };
 }
 
-export function Eyes({ storeCardDirection = { x: 0.3, y: 1 } }: EyesProps) {
+export function Eyes({ storeCardDirection = { x: 0.3, y: 1 }, lookAt }: EyesProps) {
   const agentState = useOrbStore((s) => s.agentState);
   const tier = useOrbStore((s) => s.tier);
   const reduced = useOrbReducedMotion();
@@ -162,6 +167,10 @@ export function Eyes({ storeCardDirection = { x: 0.3, y: 1 } }: EyesProps) {
     const l = Math.hypot(storeCardDirection.x, storeCardDirection.y) || 1;
     return { x: storeCardDirection.x / l, y: storeCardDirection.y / l };
   })();
+  const at = lookAt ? (() => {
+    const l = Math.hypot(lookAt.x, lookAt.y) || 1;
+    return { x: lookAt.x / l, y: lookAt.y / l };
+  })() : null;
 
   // Intent gaze per mode.
   useEffect(() => {
@@ -173,6 +182,10 @@ export function Eyes({ storeCardDirection = { x: 0.3, y: 1 } }: EyesProps) {
         gy.jump(y);
       }
     };
+    if (at && (mode === "trusted" || mode === "caution" || mode === "blocked")) {
+      // Blocked glares a touch flatter; caution keeps its sideways skeptic tilt via the brows.
+      return set(at.x * GAZE_X, at.y * GAZE_Y * (mode === "blocked" ? 0.6 : 0.85));
+    }
     switch (mode) {
       case "blocked":
         return set(look.x * GAZE_X, look.y * GAZE_Y * 0.6);
@@ -187,7 +200,7 @@ export function Eyes({ storeCardDirection = { x: 0.3, y: 1 } }: EyesProps) {
       default:
         return set(0, 0);
     }
-  }, [mode, reduced, look.x, look.y, gazeX, gazeY, gx, gy]);
+  }, [mode, reduced, look.x, look.y, at?.x, at?.y, gazeX, gazeY, gx, gy]);
 
   // Listening: eyes follow the pointer (no React re-render per move).
   useEffect(() => {

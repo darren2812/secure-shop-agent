@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { FRAG, VERT } from "./shader";
-import { hexToRgb, orbHex } from "./colors";
+import { hexToRgb, orbHex, TIER_LABEL } from "./colors";
 import { useOrbStore, type AgentState } from "./store";
 import { useOrbReducedMotion } from "./useReducedMotion";
 import { Eyes } from "./Eyes";
@@ -22,6 +22,10 @@ interface OrbProps {
   onToggle?: () => void;
   /** Where the store card sits relative to the orb; blocked eyes glare that way. */
   storeCardDirection?: { x: number; y: number };
+  /** Optional gaze target for verdict eyes (see Eyes `lookAt`). */
+  lookAt?: { x: number; y: number };
+  /** Companion use (not tappable): renders a labelled image instead of a button. */
+  decorative?: boolean;
 }
 
 function hasWebGL2(): boolean {
@@ -32,10 +36,20 @@ function hasWebGL2(): boolean {
   }
 }
 
-export function Orb({ size = 320, onToggle, storeCardDirection }: OrbProps) {
+export function Orb({ size = 320, onToggle, storeCardDirection, lookAt, decorative }: OrbProps) {
   const [webgl] = useState(hasWebGL2);
   const agentState = useOrbStore((s) => s.agentState);
   const tier = useOrbStore((s) => s.tier);
+
+  if (decorative) {
+    return (
+      <div className="orb orb--mini" role="img" aria-label={tier ? `Warden: ${TIER_LABEL[tier].text}` : "Warden"}
+        style={{ width: size, height: size }} data-state={agentState} data-tier={tier ?? "none"}>
+        {webgl ? <OrbCanvas size={size} /> : <OrbFallback />}
+        <Eyes storeCardDirection={storeCardDirection} lookAt={lookAt} />
+      </div>
+    );
+  }
 
   return (
     <button
@@ -49,7 +63,7 @@ export function Orb({ size = 320, onToggle, storeCardDirection }: OrbProps) {
       data-tier={tier ?? "none"}
     >
       {webgl ? <OrbCanvas size={size} /> : <OrbFallback />}
-      <Eyes storeCardDirection={storeCardDirection} />
+      <Eyes storeCardDirection={storeCardDirection} lookAt={lookAt} />
     </button>
   );
 }

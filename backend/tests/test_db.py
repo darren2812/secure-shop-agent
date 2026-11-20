@@ -97,3 +97,10 @@ def test_shared_tier_schema_keys_purchases_on_decision_id():
     assert "ROWSTORE REFERENCE" not in block
     assert "decision_id VARCHAR(64) NOT NULL PRIMARY KEY" in block
     assert "id VARCHAR(64) PRIMARY KEY" not in block and "KEY (id)" in block
+
+
+def test_shared_tier_schema_skips_senso_docs_to_stay_under_table_limit():
+    from app import db as _db
+    s = _db.shared_tier_schema(_db.SCHEMA.read_text())
+    assert "senso_docs" not in s
+    assert s.count("CREATE TABLE IF NOT EXISTS") <= 10

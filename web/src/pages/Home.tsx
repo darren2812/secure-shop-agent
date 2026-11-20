@@ -6,7 +6,7 @@ import { useOrbStore } from "../orb/store";
 import { AuditPanel } from "../shop/AuditPanel";
 import { BuyDialog } from "../shop/BuyDialog";
 import { PurchaseSheet } from "../shop/PurchaseSheet";
-import { Results } from "../shop/Results";
+import { ResultsPopup } from "../shop/ResultsPopup";
 import { TrustPanel } from "../trust/TrustPanel";
 import { useVoice } from "../voice/useVoice";
 
@@ -17,6 +17,8 @@ export function Home() {
   /** Purchase sheet: null = closed; focus = listing the person or the agent pointed at. */
   const [sheet, setSheet] = useState<{ focus: string | null } | null>(null);
   const [showAudit, setShowAudit] = useState(false);
+  /** Results pop-up over the home orb; the "View results" chip reopens it. */
+  const [popup, setPopup] = useState(false);
   const [error, setError] = useState("");
   const [verified, setVerified] = useState<boolean | null>(null);
   useEffect(() => {
@@ -45,6 +47,8 @@ export function Home() {
       // The agent never buys — the person still taps Continue and confirms.
       if (r.ui_action?.type === "show_options") setSheet((s) => ({ focus: s?.focus ?? null }));
       else if (r.ui_action?.type === "focus_listing") setSheet({ focus: r.ui_action.listing_id ?? null });
+      // Plain answers with stores open the results pop-up; agent tool calls go straight to the sheet.
+      else if (r.results.length) setPopup(true);
       setTier(r.tier);
       setLabel(r.say);
       return r.say;
@@ -82,6 +86,7 @@ export function Home() {
     setBuying(null);
     if (turn) setTier(turn.tier); // back to the scan verdict after the verify step
     if (order) {
+      setPopup(false);
       setShowAudit(true);
       setVerified(true);
     }
@@ -91,16 +96,18 @@ export function Home() {
     turnRef.current = null;
     setTurn(null);
     setSheet(null);
+    setPopup(false);
     setShowAudit(false);
     setTier(null);
     setLabel("");
-    document.getElementById("ask")?.focus();
+    setTimeout(() => document.getElementById("ask")?.focus(), 0);
   };
 
   const reset = async () => {
     await api.reset();
     turnRef.current = null;
     setSheet(null);
+    setPopup(false);
     setTurn(null);
     setShowAudit(false);
     setVerified(false);
@@ -114,7 +121,7 @@ export function Home() {
   const size = typeof window !== "undefined" ? Math.max(260, Math.min(320, window.innerWidth - 96)) : 320;
 
   return (
-    <main className="page home">
+    <main className={`page home${popup ? " home--popup" : ""}`}>
       <section className="home__stage stage oscuro grano" aria-labelledby="home-title">
         <div className="stage__bar">
           <p className="wordmark">Warden</p>
@@ -126,8 +133,14 @@ export function Home() {
         </div>
         <div className="stage__inner">
           <h1 id="home-title" className="titular stage__title">Tell me what you want. I'll find a safe store.</h1>
-          <Orb size={size} onToggle={toggleTalk} />
+          {/* One WebGL orb at a time: the pop-up's corner orb replaces this one while it is open. */}
+          {popup ? <div className="orb-slot" style={{ width: size, height: size }} aria-hidden="true" /> : <Orb size={size} onToggle={toggleTalk} />}
           <OrbLabel />
+          {turn?.results.length && !popup ? (
+            <button type="button" className="chip viewres" onClick={() => setPopup(true)}>
+              View results <span aria-hidden="true">↑</span>
+            </button>
+          ) : null}
           {voice.mode !== "off" && (voice.youSaid || voice.wardenSays) ? (
             <div className="captions" aria-live="polite">
               {voice.youSaid ? <p className="captions__you"><span>You</span>{voice.youSaid}</p> : null}
@@ -162,8 +175,6 @@ export function Home() {
 
         {turn ? (
           <>
-            {turn.explanation ? <p className="home__why">{turn.explanation}</p> : null}
-            <Results results={turn.results} onBuy={(r) => setSheet({ focus: r.listing_id })} />
             <button type="button" className="link home__receipt" onClick={() => setShowAudit((v) => !v)}>
               {showAudit ? "Hide receipt" : "View receipt"}
             </button>
@@ -176,6 +187,14 @@ export function Home() {
           <a href="#/attack">attack demo</a> · <a href="#/orb-lab">orb-lab</a> · <button type="button" className="link" onClick={reset}>reset demo</button>
         </footer>
       </div>
+
+      {popup && turn ? (
+        <ResultsPopup explanation={turn.explanation} results={turn.results}
+          onBuy={(r) => setSheet({ focus: r.listing_id })}
+          onClose={() => setPopup(false)}
+          onReceipt={() => { setPopup(false); setShowAudit(true); }}
+          onNewSearch={newSearch} />
+      ) : null}
 
       {sheet && turn && !buying ? (
         <PurchaseSheet results={turn.results} focusedId={sheet.focus}

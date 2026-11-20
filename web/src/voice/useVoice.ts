@@ -45,11 +45,13 @@ export function useVoice(onAsk: Ask) {
   }, []);
 
   const handleDelegation = async (delegationId: string) => {
-    // Silence the automatic filler acknowledgment while the backend works.
-    send({ type: "session.thinking.append", event_id: eid("think"), delegation_id: delegationId, content: "" });
+    setAgentState("scanning");
+    // The delegation can arrive before the user's transcript does: wait briefly for it.
+    for (let i = 0; i < 30 && !heard.current.trim(); i++) await new Promise((r) => setTimeout(r, 100));
     const text = heard.current.trim();
     heard.current = "";
-    setAgentState("scanning");
+    // Short spoken acknowledgment so the wait for the backend isn't silent.
+    if (text) send({ type: "session.commentary.append", event_id: eid("ack"), delegation_id: delegationId, content: "One moment, I'm checking the stores." });
     let say: string;
     try {
       say = text ? await onAsk(text) : "Sorry, I didn't catch that.";

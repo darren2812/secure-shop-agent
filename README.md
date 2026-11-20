@@ -20,6 +20,8 @@ Built at the Tokens& Personal Agents Hackathon (SF, Nov 20 2026).
 5. The voice-session endpoint checks origin, a demo token and a rate limit. Demo controls (reset, attacks, reports, verification) only answer this machine or the demo token, and refuse other sites' origins.
 6. Brand impersonation is checked on a folded name (Unicode NFKC, look-alike letters and digits, punctuation removed). It errs on the safe side: a name like "Pineapple Audio" off apple.com is also blocked.
 
+See [docs/SECURITY-MAPPING.md](docs/SECURITY-MAPPING.md) for the OWASP LLM Top 10, CrowdStrike, NIST AI RMF and privacy/PCI mapping.
+
 ## Run locally
 
 ```bash
