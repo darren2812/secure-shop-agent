@@ -15,6 +15,19 @@ export function BuyDialog({ result, requestId, onClose }: { result: Result; requ
   const [verificationId, setVerificationId] = useState<string | undefined>();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<{ message: string; charged: boolean } | null>(null);
+  // Post-purchase feedback: a report flags the store server-side, so it and any store sharing its
+  // address, email or phone are blocked on the next search.
+  const [feedback, setFeedback] = useState<"none" | "good" | "sending" | "reported" | "failed">("none");
+  const sendReport = async () => {
+    if (!decision) return;
+    setFeedback("sending");
+    try {
+      await api.report(decision.store.id, requestId);
+      setFeedback("reported");
+    } catch {
+      setFeedback("failed");
+    }
+  };
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
   const setTier = useOrbStore((s) => s.setTier);
@@ -117,6 +130,25 @@ export function BuyDialog({ result, requestId, onClose }: { result: Result; requ
           <h2 id="buy-title" tabIndex={-1}>Done — order placed</h2>
           <p className="buy__sum">${order.amount.toFixed(0)} at {decision?.store.name}. Your receipt is saved.</p>
           <p className="buy__note">Not charged real money: this is a demo.</p>
+          <div className="buy__feedback" aria-live="polite">
+            {feedback === "none" || feedback === "sending" ? (
+              <>
+                <p className="buy__feedback-q">How did {decision?.store.name} do?</p>
+                <div className="buy__feedback-btns">
+                  <button type="button" onClick={() => setFeedback("good")} disabled={feedback === "sending"}>👍 All good</button>
+                  <button type="button" className="buy__report" onClick={sendReport} disabled={feedback === "sending"}>
+                    {feedback === "sending" ? "Reporting…" : "🚩 Report this store"}
+                  </button>
+                </div>
+              </>
+            ) : feedback === "good" ? (
+              <p>Thanks! Glad it went well.</p>
+            ) : feedback === "reported" ? (
+              <p>Reported. Warden will now block {decision?.store.name} and any store linked to it, for everyone.</p>
+            ) : (
+              <p>Couldn't send the report. Try again from the store list.</p>
+            )}
+          </div>
           <div className="buy__actions"><button type="button" className="buy__primary" onClick={close}>Close</button></div>
         </>
       ) : null}

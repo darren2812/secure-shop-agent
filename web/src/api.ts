@@ -134,4 +134,6 @@ export const api = {
   verifyMe: (inquiry_id: string) => call<{ verified: boolean }>("POST", "/api/me/verify", { inquiry_id }),
   redFlags: () => call<{ stores: RedFlagStore[] }>("GET", "/api/red-flags"),
   reset: () => call<unknown>("POST", "/api/reset_demo"),
+  report: (storeId: string, requestId?: string) =>
+    call<{ store_id: string; flagged: boolean }>("POST", "/api/reports", { store_id: storeId, request_id: requestId }),
 };

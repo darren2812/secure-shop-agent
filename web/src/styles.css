@@ -678,3 +678,12 @@ h1, h2, h3 { font-weight: 400; }
 .rfcard__reasons { margin-top: 10px; display: grid; gap: 6px; }
 .rfcard__reasons li { position: relative; padding-left: 20px; font-size: 1.0625rem; line-height: 1.4; overflow-wrap: anywhere; }
 .rfcard__reasons li::before { content: ""; position: absolute; left: 4px; top: 0.6em; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+
+/* Post-purchase feedback */
+.buy__feedback { margin-top: 18px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); text-align: left; }
+.buy__feedback p { margin: 0; font-size: 1.0625rem; line-height: 1.4; }
+.buy__feedback-q { font-weight: 520; }
+.buy__feedback-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.buy__feedback-btns button { flex: 1 1 140px; min-height: 48px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: inherit; font: inherit; font-size: 1rem; cursor: pointer; }
+.buy__feedback-btns .buy__report { border-color: var(--blocked); color: var(--blocked); }
+.buy__feedback-btns button:disabled { opacity: 0.6; cursor: default; }
