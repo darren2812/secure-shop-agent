@@ -57,7 +57,7 @@ def _store(conn, sid, name, domain, address, days_old, payments):
         (sid, "30-day returns", address, json.dumps(payments), ""),
     )
     conn.execute(
-        "INSERT INTO store_signals (store_id, signal, params, source) VALUES (?,?,?,?)",
+        "INSERT INTO store_signals (store_id, `signal`, params, source) VALUES (?,?,?,?)",
         (sid, "facts", json.dumps({"domain_created": str(date.today() - timedelta(days=days_old))}), "attack page"),
     )
 

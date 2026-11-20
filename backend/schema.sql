@@ -1,5 +1,5 @@
--- Works on SQLite (local) and SingleStore/MySQL with minor type tweaks.
--- audit_events.canonical_text holds the exact hashed bytes; never store it as JSON.
+-- Shared schema. SQLite initialization strips the ROWSTORE REFERENCE modifier.
+-- audit_events.canonical_text holds the exact hashed bytes, never store it as JSON.
 
 CREATE TABLE IF NOT EXISTS users (
   id VARCHAR(64) PRIMARY KEY,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS listings (
 
 CREATE TABLE IF NOT EXISTS store_signals (
   store_id VARCHAR(64) NOT NULL,
-  signal VARCHAR(64) NOT NULL,
+  `signal` VARCHAR(64) NOT NULL,
   params TEXT,
   source VARCHAR(128),
   evidence_url TEXT
@@ -82,7 +82,8 @@ CREATE TABLE IF NOT EXISTS decisions (
   created_at VARCHAR(40) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS purchases (
+-- Reference storage preserves both independent unique keys without a shard key.
+CREATE ROWSTORE REFERENCE TABLE IF NOT EXISTS purchases (
   id VARCHAR(64) PRIMARY KEY,
   request_id VARCHAR(64) NOT NULL,
   user_id VARCHAR(64) NOT NULL,

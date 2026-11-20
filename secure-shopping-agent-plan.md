@@ -257,7 +257,7 @@ RED_FLAGS = {   # regex -> fixed label; the label goes in the reason, never the 
   - **Deadline:** if the full test suite isn't green against SingleStore by 2:45, keep SQLite.
 - **Or change the claims (5 min):** README and Trust panel say "SQLite locally; schema is SingleStore-ready". Don't demo a SingleStore claim that isn't true.
 
-Firedrill drills run on a SQLite file either way (§9.1).
+**Decided 13:05:** we wire SingleStore (in progress). Firedrill drills run on a second database, `shop_drill` (§9.1). Steps are in `implementation-plan.md`.
 
 ---
 
@@ -282,8 +282,8 @@ Firedrill drills run on a SQLite file either way (§9.1).
 
 - The runner **starts our backend on this machine** from a local plan. Readiness check: `http://127.0.0.1:0/health`. `port_env: "PORT"` (the backend reads it in `app/__main__.py`).
 - Driver (verbatim from the docs): `{"profile": "http.v1", "service_alias": "agent", "path": "/chat", "method": "POST", "stream": "none", "session_header": null, "request_template": "message-text", "response_pointer": "/reply"}`
-- Drill environment: `SQLITE_PATH=<abs path>/shop_drill.db`, `ANTHROPIC_API_KEY` under `local_secret_env`, Senso and Cognee **off** (deterministic, and it saves Senso credits; the safety scenarios don't depend on them).
-- **Reset hook** `backend/scripts/reset_drill_state.py`: refuses unless the SQLite file name ends in `_drill.db`, runs `reset_and_seed()`, then applies the `prompt_injection` attack so the drill database also has an injection in Apple Store Outlet's policy text (for F3). Register it as the approved state hook with `per_drill: true`.
+- Drill environment: `DATABASE_URL=.../shop_drill` (SingleStore) and `ANTHROPIC_API_KEY` under `local_secret_env`, Senso and Cognee **off** (deterministic, and it saves Senso credits; the safety scenarios don't depend on them). Drills share `shop_drill`, so run them one at a time.
+- **Reset hook** `backend/scripts/reset_drill_state.py`: refuses unless the database name ends in `_drill`, runs `reset_and_seed()`, then applies the `prompt_injection` attack so the drill database also has an injection in Apple Store Outlet's policy text (for F3). Register it as the approved state hook with `per_drill: true`.
 - Evaluations: rubric `criteria`, `evidence: ["conversation"]`, `threshold: 75`. Firedrill's `exact_checks` count only Firedrill's own simulated tools, so order and ledger checks stay in pytest.
 - **Gotchas:** a plan is approved per exact file hashes, so code changes force a new plan. Dry run at ~2:30, **final campaign after the 3:30 freeze**. Credits: 6 scenarios, `max_turns` ≤ 6. No export: **screenshot** the Simulations list and each Report tab. Keep `local-plan.json` out of git.
 
@@ -329,7 +329,7 @@ New checks for today's changes:
 | T4 | Senso with a fake `httpx` transport: a red-flag passage → `policy_red_flag` with source and URL; the passage appears only under `untrusted_text` (never in reason text, `say` or `reply`); timeout or 500 → no signal and `sources.senso = "error"`; no key → `"off"` |
 | T5 | Cognee walk on a fixed adjacency list: NorthPeak gets `linked_two_hops` with the path; AudioHub (one hop) gets only the SQL gate; off → no change |
 | T6 | Extras only subtract: for every seed listing, score and tier with Senso + Cognee are never better than without |
-| T7 | `reset_drill_state.py` refuses a database file whose name doesn't end in `_drill.db` |
+| T7 | `reset_drill_state.py` refuses a database whose name doesn't end in `_drill` |
 
 ### 9.3 Manual voice checklist (frontend + tester, before the freeze)
 

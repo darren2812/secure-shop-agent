@@ -145,7 +145,7 @@ def place_order(user_id: str, decision_id: str, verification_id: str | None = No
             raise PolicyError("already_used", "Not charged again: this decision was already used")
 
         month = _month()
-        conn.execute("INSERT OR IGNORE INTO ledger (user_id, month, spent) VALUES (?, ?, 0)", (user_id, month))
+        conn.execute(f"{db.insert_ignore()} INTO ledger (user_id, month, spent) VALUES (?, ?, 0)", (user_id, month))
         cap = _user(conn, user_id)["cap"]
         # Atomic cap check: parallel or stockpiled decisions can't add up past the monthly cap.
         cur = conn.execute("UPDATE ledger SET spent = spent + ? WHERE user_id = ? AND month = ? AND spent + ? <= ?",

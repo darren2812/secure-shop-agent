@@ -100,7 +100,7 @@ def reset_and_seed() -> None:
             )
             facts = {k: s[k] for k in ("domain_created", "seller_months", "seller_ratings") if k in s}
             conn.execute(
-                "INSERT INTO store_signals (store_id, signal, params, source) VALUES (?,?,?,?)",
+                "INSERT INTO store_signals (store_id, `signal`, params, source) VALUES (?,?,?,?)",
                 (s["id"], "facts", json.dumps(facts), "seed (RDAP stand-in)"),
             )
         for p in POLICIES:
