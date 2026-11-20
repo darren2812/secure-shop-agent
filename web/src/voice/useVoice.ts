@@ -20,6 +20,9 @@ const eid = (p: string) => `${p}_${Date.now()}_${eventSeq++}`;
 export function useVoice(onAsk: Ask) {
   const [mode, setMode] = useState<VoiceMode>("off");
   const [error, setError] = useState("");
+  // Live captions: what the user said (this turn) and what Warden is saying.
+  const [youSaid, setYouSaid] = useState("");
+  const [wardenSays, setWardenSays] = useState("");
   const pc = useRef<RTCPeerConnection | null>(null);
   const dc = useRef<RTCDataChannel | null>(null);
   const mic = useRef<MediaStream | null>(null);
@@ -69,13 +72,16 @@ export function useVoice(onAsk: Ask) {
         setAgentState("listening");
         break;
       case "session.input_transcript.delta":
+        if (!heard.current) setWardenSays("");
         heard.current += ev.delta ?? "";
+        setYouSaid(heard.current);
         setAgentState("listening");
         break;
       case "session.delegation.created":
         if (ev.delegation?.id) void handleDelegation(ev.delegation.id);
         break;
       case "session.output_transcript.delta":
+        setWardenSays((t) => (t + (ev.delta ?? "")).slice(-400));
         setAgentState("speaking");
         window.clearTimeout(speakingTimer.current);
         speakingTimer.current = window.setTimeout(() => setAgentState("listening"), SPEAKING_IDLE_MS);
@@ -152,6 +158,8 @@ export function useVoice(onAsk: Ask) {
     setAgentState("listening");
     rec.onresult = async (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
       const text = e.results[0][0].transcript as string;
+      setYouSaid(text);
+      setWardenSays("");
       setAgentState("scanning");
       // No browser text-to-speech: only OpenAI's voice speaks. Without GPT-Live the answer is shown on screen.
       await onAsk(text).catch(() => undefined);
@@ -185,5 +193,5 @@ export function useVoice(onAsk: Ask) {
     }
   }, [cleanup]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { mode, error, start, stop };
+  return { mode, error, start, stop, youSaid, wardenSays };
 }

@@ -128,6 +128,12 @@ export function Home() {
           <h1 id="home-title" className="titular stage__title">Tell me what you want. I'll find a safe store.</h1>
           <Orb size={size} onToggle={toggleTalk} />
           <OrbLabel />
+          {voice.mode !== "off" && (voice.youSaid || voice.wardenSays) ? (
+            <div className="captions" aria-live="polite">
+              {voice.youSaid ? <p className="captions__you"><span>You</span>{voice.youSaid}</p> : null}
+              {voice.wardenSays ? <p className="captions__warden"><span>Warden</span>{voice.wardenSays}</p> : null}
+            </div>
+          ) : null}
         </div>
         <span className="stage__brandbar" aria-hidden="true" />
       </section>

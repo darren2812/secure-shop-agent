@@ -52,6 +52,24 @@ def insert_ignore() -> str:
     return "INSERT IGNORE" if os.environ.get("DATABASE_URL") else "INSERT OR IGNORE"
 
 
+def shared_tier() -> bool:
+    """SingleStore shared (free) tier: no reference tables, one unique key per sharded table."""
+    return os.environ.get("SINGLESTORE_SHARED_TIER", "") == "1"
+
+
+def shared_tier_schema(schema: str) -> str:
+    """Make purchases a sharded table keyed on decision_id (the single-use key that matters).
+    purchases.id stays a server-generated uuid, indexed but not unique-enforced on this tier."""
+    schema = schema.replace("CREATE ROWSTORE REFERENCE TABLE IF NOT EXISTS purchases (",
+                            "CREATE TABLE IF NOT EXISTS purchases (")
+    start = schema.index("CREATE TABLE IF NOT EXISTS purchases (")
+    end = schema.index(");", start)
+    block = schema[start:end]
+    block = block.replace("id VARCHAR(64) PRIMARY KEY,", "id VARCHAR(64) NOT NULL,", 1)
+    block = block.replace("decision_id VARCHAR(64) NOT NULL UNIQUE,", "decision_id VARCHAR(64) NOT NULL PRIMARY KEY,", 1)
+    return schema[:start] + block + "\n  , KEY (id)\n" + schema[end:]
+
+
 def db_path() -> str:
     return os.environ.get("SQLITE_PATH", str(Path(__file__).resolve().parent.parent / "local.db"))
 
@@ -85,6 +103,8 @@ def init_db() -> None:
     schema = SCHEMA.read_text()
     with connect() as conn:
         if isinstance(conn, MySQLConnection):
+            if shared_tier():
+                schema = shared_tier_schema(schema)
             # Schema statements contain no semicolons inside strings or comments.
             for statement in schema.split(";"):
                 if statement.strip():

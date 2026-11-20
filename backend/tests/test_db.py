@@ -87,3 +87,13 @@ def test_test_guard_precedes_dotenv_and_disables_extras(monkeypatch, tmp_path, t
     load_dotenv(env_file)  # same non-overriding behavior as app.main
     assert os.environ["DATABASE_URL"] == test_url
     assert os.environ["SENSO_API_KEY"] == os.environ["COGNEE_ENABLED"] == ""
+
+
+def test_shared_tier_schema_keys_purchases_on_decision_id():
+    from app import db as _db
+    s = _db.shared_tier_schema(_db.SCHEMA.read_text())
+    block = s[s.index("CREATE TABLE IF NOT EXISTS purchases ("):]
+    block = block[:block.index(");")]
+    assert "ROWSTORE REFERENCE" not in block
+    assert "decision_id VARCHAR(64) NOT NULL PRIMARY KEY" in block
+    assert "id VARCHAR(64) PRIMARY KEY" not in block and "KEY (id)" in block
